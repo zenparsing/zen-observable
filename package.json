@@ -1,0 +1,7 @@
+{
+    "name": "zen-observable",
+    "version": "0.1.1",
+    "description": "An Implementation of ES Observables",
+    "homepage": "https://github.com/zenparsing/zen-observable",
+    "main": "./Observable.js"
+}
