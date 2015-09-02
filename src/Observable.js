@@ -288,7 +288,7 @@ addMethods(Observable.prototype, {
                 next(value) {
 
                     try { return fn(value) }
-                    catch (x) { reject(x) }
+                    catch (e) { reject(e) }
                 },
 
                 error: reject,
@@ -408,11 +408,11 @@ addMethods(Observable, {
                         }
                     }
 
-                } catch (x) {
+                } catch (e) {
 
                     // If observer.next throws an error, then the subscription will
                     // be closed and the error method will simply rethrow
-                    observer.error(x);
+                    observer.error(e);
                     return;
                 }
 
