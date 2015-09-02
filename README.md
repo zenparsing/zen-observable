@@ -2,7 +2,7 @@
 
 An implementation of [ES Observables](https://github.com/zenparsing/es-observable).
 
-Requires an ES6 Promise polyfill.
+Requires ES6 Promises or a Promise polyfill.
 
 ### Install
 
