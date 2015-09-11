@@ -1,4 +1,4 @@
-/*=esdown=*/(function(fn, deps, name) { function obj() { return {} } if (typeof exports !== 'undefined') fn(require, exports, module); else if (typeof define === 'function' && define.amd) define(['require', 'exports', 'module'].concat(deps), fn); else if (typeof self !== 'undefined' && name) fn(obj, name === '*' ? self : (self[name] = {}), {}); else fn(obj, {}, {}); })(function(require, exports, module) { 'use strict'; function __load(p, l) { module.__es6 = !l; var e = require(p); if (e && e.constructor !== Object) e.default = e; return e; } // === Non-Promise Job Queueing ===
+/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(require, exports, module); else if (typeof self !== 'undefined') fn(function() { return {} }, name === '*' ? self : (self[name] = {}), {}); })(function(require, exports, module) { 'use strict'; // === Non-Promise Job Queueing ===
 
 var enqueueJob = (function() {
 
@@ -455,4 +455,4 @@ Object.defineProperty(Observable, getSymbol("species"), {
 exports.Observable = Observable;
 
 
-}, [], "*");
+}, "*");
