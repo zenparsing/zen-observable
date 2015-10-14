@@ -2,5 +2,8 @@
     "name": "zen-observable",
     "version": "0.1.3",
     "description": "An Implementation of ES Observables",
-    "homepage": "https://github.com/zenparsing/zen-observable"
+    "homepage": "https://github.com/zenparsing/zen-observable",
+    "dependencies": {
+        "es-observable-tests": "^0.1.6"
+    }
 }
