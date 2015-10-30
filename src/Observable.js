@@ -124,7 +124,22 @@ function subscriptionClosed(observer) {
     return observer._observer === undefined;
 }
 
-function SubscriptionObserver(observer, subscriber) {
+function closeSubscription(observer) {
+
+    if (subscriptionClosed(observer))
+        return;
+
+    observer._observer = undefined;
+    cleanupSubscription(observer);
+}
+
+function cleanupFromSubscription(subscription) {
+    // TODO:  Should we get the method out and apply it here, instead of
+    // looking up the method at call time?
+    return _=> { subscription.unsubscribe() };
+}
+
+function createSubscription(observer, subscriber) {
 
     // Assert: subscriber is callable
 
@@ -132,43 +147,56 @@ function SubscriptionObserver(observer, subscriber) {
     if (Object(observer) !== observer)
         throw new TypeError("Observer must be an object");
 
-    this._observer = observer;
-    this._cleanup = undefined;
+    // TODO: Should we check for a "next" method here?
+
+    let subscriptionObserver = new SubscriptionObserver(observer),
+        subscription = new Subscription(subscriptionObserver),
+        start = getMethod(observer, "start");
+
+    if (start)
+        start.call(observer, subscription);
+
+    if (subscriptionClosed(subscriptionObserver))
+        return subscription;
 
     try {
 
         // Call the subscriber function
-        let cleanup = subscriber.call(undefined, this);
+        let cleanup = subscriber.call(undefined, subscriptionObserver);
 
-        // The return value must be undefined, null, or a function
-        if (cleanup != null && typeof cleanup !== "function")
-            throw new TypeError(cleanup + " is not a function");
+        // The return value must be undefined, null, a subscription object, or a function
+        if (cleanup != null) {
 
-        this._cleanup = cleanup;
+            if (typeof cleanup.unsubscribe === "function")
+                cleanup = cleanupFromSubscription(cleanup);
+            else if (typeof cleanup !== "function")
+                throw new TypeError(cleanup + " is not a function");
+
+            subscriptionObserver._cleanup = cleanup;
+        }
 
     } catch (e) {
 
         // If an error occurs during startup, then attempt to send the error
         // to the observer
-        this.error(e);
-        return;
+        subscriptionObserver.error(e);
+        return subscription;
     }
 
     // If the stream is already finished, then perform cleanup
-    if (subscriptionClosed(this))
-        cleanupSubscription(this);
+    if (subscriptionClosed(subscriptionObserver))
+        cleanupSubscription(subscriptionObserver);
+
+    return subscription;
+}
+
+function SubscriptionObserver(observer) {
+
+    this._observer = observer;
+    this._cleanup = undefined;
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
-
-    cancel() {
-
-        if (subscriptionClosed(this))
-            return;
-
-        this._observer = undefined;
-        cleanupSubscription(this);
-    },
 
     get closed() { return subscriptionClosed(this) },
 
@@ -194,7 +222,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
         } catch (e) {
 
             // If the observer throws, then close the stream and rethrow the error
-            try { this.cancel() }
+            try { closeSubscription(this) }
             finally { throw e }
         }
     },
@@ -258,6 +286,14 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
 });
 
+function Subscription(observer) {
+    this._observer = observer;
+}
+
+addMethods(Subscription.prototype = {}, {
+    unsubscribe() { closeSubscription(this._observer) }
+});
+
 export function Observable(subscriber) {
 
     // The stream subscriber must be a function
@@ -271,9 +307,7 @@ addMethods(Observable.prototype, {
 
     subscribe(observer) {
 
-        // Wrap the observer in order to maintain observation invariants
-        observer = new SubscriptionObserver(observer, this._subscriber);
-        return _=> { observer.cancel() };
+        return createSubscription(observer, this._subscriber);
     },
 
     forEach(fn) {

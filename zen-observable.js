@@ -1,4 +1,4 @@
-/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(require, exports, module); else if (typeof self !== 'undefined') fn(function() { return {} }, name === '*' ? self : (self[name] = {}), {}); })(function(require, exports, module) { 'use strict'; // === Non-Promise Job Queueing ===
+/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(require, exports, module); else if (typeof self !== 'undefined') fn(void 0, name === '*' ? self : (name ? self[name] = {} : {})); })(function(require, exports, module) { 'use strict'; // === Non-Promise Job Queueing ===
 
 var enqueueJob = (function() {
 
@@ -124,7 +124,22 @@ function subscriptionClosed(observer) {
     return observer._observer === undefined;
 }
 
-function SubscriptionObserver(observer, subscriber) {
+function closeSubscription(observer) {
+
+    if (subscriptionClosed(observer))
+        return;
+
+    observer._observer = undefined;
+    cleanupSubscription(observer);
+}
+
+function cleanupFromSubscription(subscription) {
+    // TODO:  Should we get the method out and apply it here, instead of
+    // looking up the method at call time?
+    return function(_) { subscription.unsubscribe() };
+}
+
+function createSubscription(observer, subscriber) {
 
     // Assert: subscriber is callable
 
@@ -132,43 +147,56 @@ function SubscriptionObserver(observer, subscriber) {
     if (Object(observer) !== observer)
         throw new TypeError("Observer must be an object");
 
-    this._observer = observer;
-    this._cleanup = undefined;
+    // TODO: Should we check for a "next" method here?
+
+    var subscriptionObserver = new SubscriptionObserver(observer),
+        subscription = new Subscription(subscriptionObserver),
+        start = getMethod(observer, "start");
+
+    if (start)
+        start.call(observer, subscription);
+
+    if (subscriptionClosed(subscriptionObserver))
+        return subscription;
 
     try {
 
         // Call the subscriber function
-        var cleanup$0 = subscriber.call(undefined, this);
+        var cleanup$0 = subscriber.call(undefined, subscriptionObserver);
 
-        // The return value must be undefined, null, or a function
-        if (cleanup$0 != null && typeof cleanup$0 !== "function")
-            throw new TypeError(cleanup$0 + " is not a function");
+        // The return value must be undefined, null, a subscription object, or a function
+        if (cleanup$0 != null) {
 
-        this._cleanup = cleanup$0;
+            if (typeof cleanup$0.unsubscribe === "function")
+                cleanup$0 = cleanupFromSubscription(cleanup$0);
+            else if (typeof cleanup$0 !== "function")
+                throw new TypeError(cleanup$0 + " is not a function");
+
+            subscriptionObserver._cleanup = cleanup$0;
+        }
 
     } catch (e) {
 
         // If an error occurs during startup, then attempt to send the error
         // to the observer
-        this.error(e);
-        return;
+        subscriptionObserver.error(e);
+        return subscription;
     }
 
     // If the stream is already finished, then perform cleanup
-    if (subscriptionClosed(this))
-        cleanupSubscription(this);
+    if (subscriptionClosed(subscriptionObserver))
+        cleanupSubscription(subscriptionObserver);
+
+    return subscription;
+}
+
+function SubscriptionObserver(observer) {
+
+    this._observer = observer;
+    this._cleanup = undefined;
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
-
-    cancel: function() {
-
-        if (subscriptionClosed(this))
-            return;
-
-        this._observer = undefined;
-        cleanupSubscription(this);
-    },
 
     get closed() { return subscriptionClosed(this) },
 
@@ -194,7 +222,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
         } catch (e) {
 
             // If the observer throws, then close the stream and rethrow the error
-            try { this.cancel() }
+            try { closeSubscription(this) }
             finally { throw e }
         }
     },
@@ -258,6 +286,14 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
 });
 
+function Subscription(observer) {
+    this._observer = observer;
+}
+
+addMethods(Subscription.prototype = {}, {
+    unsubscribe: function() { closeSubscription(this._observer) }
+});
+
 function Observable(subscriber) {
 
     // The stream subscriber must be a function
@@ -271,9 +307,7 @@ addMethods(Observable.prototype, {
 
     subscribe: function(observer) {
 
-        // Wrap the observer in order to maintain observation invariants
-        observer = new SubscriptionObserver(observer, this._subscriber);
-        return function(_) { observer.cancel() };
+        return createSubscription(observer, this._subscriber);
     },
 
     forEach: function(fn) { var __this = this; 
