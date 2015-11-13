@@ -3,7 +3,7 @@
     "version": "0.1.6",
     "description": "An Implementation of ES Observables",
     "homepage": "https://github.com/zenparsing/zen-observable",
-    "dependencies": {
+    "devDependencies": {
         "es-observable-tests": "^0.1.8"
     }
 }
