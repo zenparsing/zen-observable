@@ -1,4 +1,4 @@
-/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(require, exports, module); else if (typeof self !== 'undefined') fn(void 0, name === '*' ? self : (name ? self[name] = {} : {})); })(function(require, exports, module) { 'use strict'; // === Non-Promise Job Queueing ===
+/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(require, exports, module); else if (typeof self !== 'undefined') fn(function() { return {} }, name === '*' ? self : (name ? self[name] = {} : {})); })(function(require, exports, module) { 'use strict'; // === Non-Promise Job Queueing ===
 
 var enqueueJob = (function() {
 
@@ -102,44 +102,42 @@ function addMethods(target, methods) {
     });
 }
 
-function cleanupSubscription(observer) {
+function cleanupSubscription(subscription) {
 
     // Assert:  observer._observer is undefined
 
-    var cleanup = observer._cleanup;
+    var cleanup = subscription._cleanup;
 
     if (!cleanup)
         return;
 
     // Drop the reference to the cleanup function so that we won't call it
     // more than once
-    observer._cleanup = undefined;
+    subscription._cleanup = undefined;
 
     // Call the cleanup function
     cleanup();
 }
 
-function subscriptionClosed(observer) {
+function subscriptionClosed(subscription) {
 
-    return observer._observer === undefined;
+    return subscription._observer === undefined;
 }
 
-function closeSubscription(observer) {
+function closeSubscription(subscription) {
 
-    if (subscriptionClosed(observer))
+    if (subscriptionClosed(subscription))
         return;
 
-    observer._observer = undefined;
-    cleanupSubscription(observer);
+    subscription._observer = undefined;
+    cleanupSubscription(subscription);
 }
 
 function cleanupFromSubscription(subscription) {
-    // TODO:  Should we get the method out and apply it here, instead of
-    // looking up the method at call time?
     return function(_) { subscription.unsubscribe() };
 }
 
-function createSubscription(observer, subscriber) {
+function Subscription(observer, subscriber) {
 
     // Assert: subscriber is callable
 
@@ -147,22 +145,23 @@ function createSubscription(observer, subscriber) {
     if (Object(observer) !== observer)
         throw new TypeError("Observer must be an object");
 
-    // TODO: Should we check for a "next" method here?
+    this._cleanup = undefined;
+    this._observer = observer;
 
-    var subscriptionObserver = new SubscriptionObserver(observer),
-        subscription = new Subscription(subscriptionObserver),
-        start = getMethod(observer, "start");
+    var start = getMethod(observer, "start");
 
     if (start)
-        start.call(observer, subscription);
+        start.call(observer, this);
 
-    if (subscriptionClosed(subscriptionObserver))
-        return subscription;
+    if (subscriptionClosed(this))
+        return;
+
+    observer = new SubscriptionObserver(this);
 
     try {
 
         // Call the subscriber function
-        var cleanup$0 = subscriber.call(undefined, subscriptionObserver);
+        var cleanup$0 = subscriber.call(undefined, observer);
 
         // The return value must be undefined, null, a subscription object, or a function
         if (cleanup$0 != null) {
@@ -172,41 +171,41 @@ function createSubscription(observer, subscriber) {
             else if (typeof cleanup$0 !== "function")
                 throw new TypeError(cleanup$0 + " is not a function");
 
-            subscriptionObserver._cleanup = cleanup$0;
+            this._cleanup = cleanup$0;
         }
 
     } catch (e) {
 
         // If an error occurs during startup, then attempt to send the error
         // to the observer
-        subscriptionObserver.error(e);
-        return subscription;
+        observer.error(e);
+        return;
     }
 
     // If the stream is already finished, then perform cleanup
-    if (subscriptionClosed(subscriptionObserver))
-        cleanupSubscription(subscriptionObserver);
-
-    return subscription;
+    if (subscriptionClosed(this))
+        cleanupSubscription(this);
 }
 
-function SubscriptionObserver(observer) {
+addMethods(Subscription.prototype = {}, {
+    unsubscribe: function() { closeSubscription(this) }
+});
 
-    this._observer = observer;
-    this._cleanup = undefined;
+function SubscriptionObserver(subscription) {
+    this._subscription = subscription;
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
 
-    get closed() { return subscriptionClosed(this) },
-
     next: function(value) {
 
+        var subscription = this._subscription;
+
         // If the stream if closed, then return undefined
-        if (subscriptionClosed(this))
+        if (subscriptionClosed(subscription))
             return undefined;
 
-        var observer = this._observer;
+        var observer = subscription._observer;
 
         try {
 
@@ -222,19 +221,21 @@ addMethods(SubscriptionObserver.prototype = {}, {
         } catch (e) {
 
             // If the observer throws, then close the stream and rethrow the error
-            try { closeSubscription(this) }
+            try { closeSubscription(subscription) }
             finally { throw e }
         }
     },
 
     error: function(value) {
 
+        var subscription = this._subscription;
+
         // If the stream is closed, throw the error to the caller
-        if (subscriptionClosed(this))
+        if (subscriptionClosed(subscription))
             throw value;
 
-        var observer = this._observer;
-        this._observer = undefined;
+        var observer = subscription._observer;
+        subscription._observer = undefined;
 
         try {
 
@@ -248,23 +249,24 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
         } catch (e) {
 
-            try { cleanupSubscription(this) }
+            try { cleanupSubscription(subscription) }
             finally { throw e }
         }
 
-        cleanupSubscription(this);
-
+        cleanupSubscription(subscription);
         return value;
     },
 
     complete: function(value) {
 
+        var subscription = this._subscription;
+
         // If the stream is closed, then return undefined
-        if (subscriptionClosed(this))
+        if (subscriptionClosed(subscription))
             return undefined;
 
-        var observer = this._observer;
-        this._observer = undefined;
+        var observer = subscription._observer;
+        subscription._observer = undefined;
 
         try {
 
@@ -275,23 +277,14 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
         } catch (e) {
 
-            try { cleanupSubscription(this) }
+            try { cleanupSubscription(subscription) }
             finally { throw e }
         }
 
-        cleanupSubscription(this);
-
+        cleanupSubscription(subscription);
         return value;
     },
 
-});
-
-function Subscription(observer) {
-    this._observer = observer;
-}
-
-addMethods(Subscription.prototype = {}, {
-    unsubscribe: function() { closeSubscription(this._observer) }
 });
 
 function Observable(subscriber) {
@@ -307,7 +300,7 @@ addMethods(Observable.prototype, {
 
     subscribe: function(observer) {
 
-        return createSubscription(observer, this._subscriber);
+        return new Subscription(observer, this._subscriber);
     },
 
     forEach: function(fn) { var __this = this; 
@@ -409,9 +402,11 @@ addMethods(Observable, {
 
         return new C(function(observer) {
 
+            var done = false;
+
             enqueueJob(function(_) {
 
-                if (observer.closed)
+                if (done)
                     return;
 
                 // Assume that the object is iterable.  If not, then the observer
@@ -424,7 +419,7 @@ addMethods(Observable, {
 
                             observer.next(item$0);
 
-                            if (observer.closed)
+                            if (done)
                                 return;
                         }
 
@@ -437,7 +432,7 @@ addMethods(Observable, {
 
                             observer.next(x[i$0]);
 
-                            if (observer.closed)
+                            if (done)
                                 return;
                         }
                     }
@@ -452,6 +447,8 @@ addMethods(Observable, {
 
                 observer.complete();
             });
+
+            return function(_) { done = true };
         });
     },
 
@@ -461,21 +458,25 @@ addMethods(Observable, {
 
         return new C(function(observer) {
 
+            var done = false;
+
             enqueueJob(function(_) {
 
-                if (observer.closed)
+                if (done)
                     return;
 
                 for (var i$1 = 0; i$1 < items.length; ++i$1) {
 
                     observer.next(items[i$1]);
 
-                    if (observer.closed)
+                    if (done)
                         return;
                 }
 
                 observer.complete();
             });
+
+            return function(_) { done = true };
         });
     },
 
