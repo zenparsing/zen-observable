@@ -3,6 +3,7 @@
     "version": "0.1.7",
     "description": "An Implementation of ES Observables",
     "homepage": "https://github.com/zenparsing/zen-observable",
+    "license": "MIT",
     "devDependencies": {
         "es-observable-tests": "^0.2.2"
     }
