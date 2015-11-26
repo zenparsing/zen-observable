@@ -1,4 +1,4 @@
-/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(require, exports, module); else if (typeof self !== 'undefined') fn(function() { return {} }, name === '*' ? self : (name ? self[name] = {} : {})); })(function(require, exports, module) { 'use strict'; // === Non-Promise Job Queueing ===
+/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { 'use strict'; // === Non-Promise Job Queueing ===
 
 var enqueueJob = (function() {
 
