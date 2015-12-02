@@ -148,14 +148,6 @@ function Subscription(observer, subscriber) {
     this._cleanup = undefined;
     this._observer = observer;
 
-    var start = getMethod(observer, "start");
-
-    if (start)
-        start.call(observer, this);
-
-    if (subscriptionClosed(this))
-        return;
-
     observer = new SubscriptionObserver(this);
 
     try {
@@ -196,7 +188,7 @@ function SubscriptionObserver(subscription) {
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
-    
+
     next: function(value) {
 
         var subscription = this._subscription;
