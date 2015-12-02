@@ -196,7 +196,7 @@ function SubscriptionObserver(subscription) {
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
-
+    
     next: function(value) {
 
         var subscription = this._subscription;
@@ -305,6 +305,8 @@ addMethods(Observable.prototype, {
 
     forEach: function(fn) { var __this = this; 
 
+        var thisArg = arguments[1];
+
         return new Promise(function(resolve, reject) {
 
             if (typeof fn !== "function")
@@ -314,7 +316,7 @@ addMethods(Observable.prototype, {
 
                 next: function(value) {
 
-                    try { return fn(value) }
+                    try { return fn.call(thisArg, value) }
                     catch (e) { reject(e) }
                 },
 
