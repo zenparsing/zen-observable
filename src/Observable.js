@@ -297,19 +297,26 @@ addMethods(Observable.prototype, {
 
     forEach(fn) {
 
-        var thisArg = arguments[1];
+        let thisArg = arguments[1];
 
         return new Promise((resolve, reject) => {
 
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            this.subscribe({
+            let subscription = this.subscribe({
 
                 next(value) {
 
-                    try { return fn.call(thisArg, value) }
-                    catch (e) { reject(e) }
+                    try {
+
+                        return fn.call(thisArg, value);
+
+                    } catch (e) {
+
+                        subscription.unsubscribe();
+                        reject(e);
+                    }
                 },
 
                 error: reject,
@@ -323,13 +330,14 @@ addMethods(Observable.prototype, {
         if (typeof fn !== "function")
             throw new TypeError(fn + " is not a function");
 
-        let C = getSpecies(this.constructor);
+        let C = getSpecies(this.constructor),
+            thisArg = arguments[1];
 
         return new C(observer => this.subscribe({
 
             next(value) {
 
-                try { value = fn(value) }
+                try { value = fn.call(thisArg, value) }
                 catch (e) { return observer.error(e) }
 
                 return observer.next(value);
@@ -345,13 +353,14 @@ addMethods(Observable.prototype, {
         if (typeof fn !== "function")
             throw new TypeError(fn + " is not a function");
 
-        let C = getSpecies(this.constructor);
+        let C = getSpecies(this.constructor),
+            thisArg = arguments[1];
 
         return new C(observer => this.subscribe({
 
             next(value) {
 
-                try { if (!fn(value)) return undefined; }
+                try { if (!fn.call(thisArg, value)) return undefined; }
                 catch (e) { return observer.error(e) }
 
                 return observer.next(value);
