@@ -106,6 +106,8 @@ addMethods(Observable.prototype, {
 
                 if (!token.requested)
                     fn(x);
+
+                // TODO: What if fn throws an error?  Should we request cancellation?
             }
 
             if (typeof fn !== "function")
