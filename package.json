@@ -1,10 +1,10 @@
 {
     "name": "zen-observable",
-    "version": "0.1.9",
+    "version": "0.1.10",
     "description": "An Implementation of ES Observables",
     "homepage": "https://github.com/zenparsing/zen-observable",
     "license": "MIT",
     "devDependencies": {
-        "es-observable-tests": "^0.2.5"
+        "es-observable-tests": "^0.2.7"
     }
 }

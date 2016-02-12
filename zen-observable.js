@@ -304,17 +304,35 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            __this.subscribe({
+            var hasError = false;
+
+            var subscription = __this.subscribe({
 
                 next: function(value) {
 
-                    try { return fn.call(thisArg, value) }
-                    catch (e) { reject(e) }
+                    if (hasError)
+                        return;
+
+                    try {
+
+                        return fn.call(thisArg, value);
+
+                    } catch (e) {
+
+                        reject(e);
+                        hasError = true;
+
+                        if (subscription)
+                            subscription.unsubscribe();
+                    }
                 },
 
                 error: reject,
                 complete: resolve,
             });
+
+            if (hasError)
+                subscription.unsubscribe();
         });
     },
 
@@ -323,13 +341,14 @@ addMethods(Observable.prototype, {
         if (typeof fn !== "function")
             throw new TypeError(fn + " is not a function");
 
-        var C = getSpecies(this.constructor);
+        var C = getSpecies(this.constructor),
+            thisArg = arguments[1];
 
         return new C(function(observer) { return __this.subscribe({
 
             next: function(value) {
 
-                try { value = fn(value) }
+                try { value = fn.call(thisArg, value) }
                 catch (e) { return observer.error(e) }
 
                 return observer.next(value);
@@ -345,13 +364,14 @@ addMethods(Observable.prototype, {
         if (typeof fn !== "function")
             throw new TypeError(fn + " is not a function");
 
-        var C = getSpecies(this.constructor);
+        var C = getSpecies(this.constructor),
+            thisArg = arguments[1];
 
         return new C(function(observer) { return __this.subscribe({
 
             next: function(value) {
 
-                try { if (!fn(value)) return undefined; }
+                try { if (!fn.call(thisArg, value)) return undefined; }
                 catch (e) { return observer.error(e) }
 
                 return observer.next(value);
