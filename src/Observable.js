@@ -297,8 +297,6 @@ addMethods(Observable.prototype, {
 
     forEach(fn) {
 
-        let thisArg = arguments[1];
-
         return new Promise((resolve, reject) => {
 
             if (typeof fn !== "function")
@@ -315,7 +313,7 @@ addMethods(Observable.prototype, {
 
                     try {
 
-                        return fn.call(thisArg, value);
+                        return fn(value);
 
                     } catch (e) {
 
@@ -341,14 +339,13 @@ addMethods(Observable.prototype, {
         if (typeof fn !== "function")
             throw new TypeError(fn + " is not a function");
 
-        let C = getSpecies(this.constructor),
-            thisArg = arguments[1];
+        let C = getSpecies(this.constructor);
 
         return new C(observer => this.subscribe({
 
             next(value) {
 
-                try { value = fn.call(thisArg, value) }
+                try { value = fn(value) }
                 catch (e) { return observer.error(e) }
 
                 return observer.next(value);
@@ -364,14 +361,13 @@ addMethods(Observable.prototype, {
         if (typeof fn !== "function")
             throw new TypeError(fn + " is not a function");
 
-        let C = getSpecies(this.constructor),
-            thisArg = arguments[1];
+        let C = getSpecies(this.constructor);
 
         return new C(observer => this.subscribe({
 
             next(value) {
 
-                try { if (!fn.call(thisArg, value)) return undefined; }
+                try { if (!fn(value)) return undefined; }
                 catch (e) { return observer.error(e) }
 
                 return observer.next(value);
