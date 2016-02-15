@@ -56,90 +56,55 @@ function addMethods(target, methods) {
     });
 }
 
-// === CancelToken ===
-
-function CancelError() {
-    // TODO: This should be an actual subclass of Error
-    return new Error("Operation cancelled");
-}
-
-export function CancelToken(init) {
-
-    if (typeof init !== "function")
-        throw new TypeError(init + " is not a function");
-
-    let resolve;
-
-    this._requested = false;
-    this._promise = new Promise(r => resolve = r);
-    init(_=> { this._requested = true; resolve(new CancelError()); });
-}
-
-addMethods(CancelToken.prototype, {
-
-    get requested() { return this._requested },
-    get promise() { return this._promise },
-    throwIfRequested() { if (this._requested) throw new CancelError() },
-});
-
 // === Observable! ===
 
-export function Observable(subscribe) {
+export function Observable(initializer) {
 
-    // The stream subscriber must be a function
-    if (typeof subscribe !== "function")
+    // The stream initializer must be a function
+    if (typeof initializer !== "function")
         throw new TypeError("Observable initializer must be a function");
 
-    this._subscribe = subscribe;
+    this._initializer = initializer;
 }
 
 addMethods(Observable.prototype, {
 
     forEach(fn) {
 
-        return new Promise((resolve, reject, onCancel) => {
+        return new Promise((resolve, reject) => {
 
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            let initialized = false,
-                finished = false,
-                cleanups = [];
+            let cancelToken = function.cancelToken,
+                task = undefined;
+
+            cancelToken.throwIfRequested();
 
             function next(x) {
 
-                if (!initialized)
+                if (!task)
                     throw new Error("Cannot send data before initialization is complete");
 
-                if (!finished)
-                    fn(x);
+                // No-op if the stream is cancelled or finished
+                if (task.cancelToken.requested)
+                    return;
 
-                // TODO: If fn throws an error, should it perform cleanup?  Cancel the
-                // inner promise and run the cleanups?
+                // TODO: What if fn throws an error?  Should we allow the stream to continue?
+                fn(x);
             }
 
-            function doCleanup() {
+            task = new Task(_=> {
 
-                finished = true;
+                // TODO: It's possible to send a next value even after the stream promise is
+                // resolved, if "next" is called before the resolve handler below is executed.
+                // Is that a problem?
 
-                for (let x of cleanups)
-                    x();
-            }
-
-            function registerCleanup(fn) {
-
-                // TODO: Dedupe, type check
-                if (!finished)
-                    cleanups.push(fn);
-            }
-
-            let p = this._subscribe.call(undefined, next, registerCleanup)
-                .then(
-                    val => { doCleanup(); return val; },
-                    err => { doCleanup(); throw err; })
-                .then(resolve, reject);
-
-            onCancel(_=> { p.cancel(); doCleanup(); });
+                this._initializer.call(undefined, next).then(
+                    val => { task.cancel(); resolve(val); },
+                    err => { task.cancel(); reject(err); });
+                });
+            });
         });
     },
 
@@ -149,7 +114,7 @@ addMethods(Observable.prototype, {
             throw new TypeError(fn + " is not a function");
 
         let C = getSpecies(this);
-        return new C((next) => this.forEach(x => fn(x) && next(x)));
+        return new C(next => this.forEach(x => fn(x) && next(x)));
     },
 
     map(fn) {
@@ -158,7 +123,7 @@ addMethods(Observable.prototype, {
             throw new TypeError(fn + " is not a function");
 
         let C = getSpecies(this);
-        return new C((next) => this.forEach(x => next(fn(x))));
+        return new C(next => this.forEach(x => next(fn(x))));
     },
 
 });
@@ -172,24 +137,26 @@ addMethods(Observable, {
         if (x == null) // or undefined
             throw new TypeError(x + " is not an object");
 
-        let method = getMethod(x, getSymbol("observable"));
+        // Duck-type on a "listen" method
+        let listen = getMethod(x, "listen");
 
-        if (method) {
+        if (listen) {
 
-            let observable = method.call(x);
+            if (x.constructor === C)
+                return x;
 
-            if (Object(observable) !== observable)
-                throw new TypeError(observable + " is not an object");
-
-            if (observable.constructor === C)
-                return observable;
-
-            return new C(::observable.forEach);
+            return new C(next => listen.call(x, next));
         }
 
-        return new C(async (next) => {
+        // Otherwise, assume it is iterable, or async iterable
+        return new C(async next => {
+
+            let token = function.cancelToken;
+            token.throwIfRequested();
 
             for await (let item of args) {
+
+                token.throwIfRequested();
                 next(item);
             }
         });
@@ -199,9 +166,14 @@ addMethods(Observable, {
 
         let C = typeof this === "function" ? this : Observable;
 
-        return new C(async (next) => {
+        return new C(async next => {
+
+            let token = function.cancelToken;
+            token.throwIfRequested();
 
             for await (let item of args) {
+
+                token.throwIfRequested();
                 next(item);
             }
         });
