@@ -302,14 +302,11 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            var hasError = false;
+            var subscription = null;
 
-            var subscription = __this.subscribe({
+            subscription = __this.subscribe({
 
                 next: function(value) {
-
-                    if (hasError)
-                        return;
 
                     try {
 
@@ -318,19 +315,13 @@ addMethods(Observable.prototype, {
                     } catch (e) {
 
                         reject(e);
-                        hasError = true;
-
-                        if (subscription)
-                            subscription.unsubscribe();
+                        subscription.unsubscribe();
                     }
                 },
 
                 error: reject,
                 complete: resolve,
             });
-
-            if (hasError)
-                subscription.unsubscribe();
         });
     },
 
