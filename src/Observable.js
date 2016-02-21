@@ -463,9 +463,7 @@ addMethods(Observable.prototype, {
 
             return _=> {
 
-                for (let subscription of subscriptions)
-                    subscription.unsubscribe();
-
+                subscriptions.forEach(s => s.unsubscribe());
                 outer.unsubscribe();
             };
         });

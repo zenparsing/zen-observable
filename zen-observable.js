@@ -463,9 +463,7 @@ addMethods(Observable.prototype, {
 
             return function(_) {
 
-                for (var __$0 = (subscriptions)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;)
-                    { var subscription$0 = __$1.value; subscription$0.unsubscribe(); }
-
+                subscriptions.forEach(function(s) { return s.unsubscribe(); });
                 outer.unsubscribe();
             };
         });

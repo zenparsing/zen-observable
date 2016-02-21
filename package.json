@@ -1,6 +1,6 @@
 {
     "name": "zen-observable",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "description": "An Implementation of ES Observables",
     "homepage": "https://github.com/zenparsing/zen-observable",
     "license": "MIT",
