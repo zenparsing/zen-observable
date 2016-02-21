@@ -48,28 +48,15 @@ var enqueueJob = (function() {
 
 // === Symbol Polyfills ===
 
-function polyfillSymbol(name) {
-
-    if (symbolsSupported() && !Symbol[name])
-        Object.defineProperty(Symbol, name, { value: Symbol(name) });
-}
-
-function symbolsSupported() {
-
-    return typeof Symbol === "function";
-}
-
 function hasSymbol(name) {
 
-    return symbolsSupported() && Boolean(Symbol[name]);
+    return typeof Symbol === "function" && Boolean(Symbol[name]);
 }
 
 function getSymbol(name) {
 
     return hasSymbol(name) ? Symbol[name] : "@@" + name;
 }
-
-polyfillSymbol("observable");
 
 // === Abstract Operations ===
 
@@ -302,9 +289,7 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            var subscription = null;
-
-            subscription = __this.subscribe({
+            var subscription = __this.subscribe({
 
                 next: function(value) {
 
@@ -342,8 +327,8 @@ addMethods(Observable.prototype, {
                 return observer.next(value);
             },
 
-            error: function(value) { return observer.error(value) },
-            complete: function(value) { return observer.complete(value) },
+            error: function(e) { return observer.error(e) },
+            complete: function() { return observer.complete() },
         }); });
     },
 
@@ -364,10 +349,127 @@ addMethods(Observable.prototype, {
                 return observer.next(value);
             },
 
-            error: function(value) { return observer.error(value) },
-            complete: function(value) { return observer.complete(value) },
+            error: function(e) { return observer.error(e) },
+            complete: function() { return observer.complete() },
         }); });
     },
+
+    reduce: function(fn) { var __this = this; 
+
+        if (typeof fn !== "function")
+            throw new TypeError(fn + " is not a function");
+
+        var C = getSpecies(this.constructor),
+            hasSeed = arguments.length > 1,
+            hasValue = false,
+            seed = arguments[1],
+            acc = seed;
+
+        return new C(function(observer) { return __this.subscribe({
+
+            next: function(value) {
+
+                var first = !hasValue;
+                hasValue = true;
+
+                if (!first || hasSeed) {
+
+                    try { acc = fn(acc, value) }
+                    catch (e) { return observer.error(e) }
+
+                } else {
+
+                    acc = value;
+                }
+            },
+
+            error: function(e) { return observer.error(e) },
+
+            complete: function() {
+
+                if (!hasValue && !hasSeed)
+                    observer.error(new TypeError("Cannot reduce an empty sequence"));
+
+                observer.next(acc);
+                observer.complete();
+            },
+
+        }); });
+    },
+
+    flatMap: function(fn) { var __this = this; 
+
+        if (typeof fn !== "function")
+            throw new TypeError(fn + " is not a function");
+
+        var C = getSpecies(this.constructor);
+
+        return new C(function(observer) {
+
+            var completed = false,
+                subscriptions = [];
+
+            // Subscribe to the outer Observable
+            var outer = __this.subscribe({
+
+                next: function(value) {
+
+                    if (fn) {
+
+                        try {
+
+                            value = fn(value);
+
+                        } catch (x) {
+
+                            observer.error(x);
+                            return;
+                        }
+                    }
+
+                    // Subscribe to the inner Observable
+                    var subscription = Observable.from(value).subscribe({
+
+                        next: function(value) { observer.next(value) },
+                        error: function(e) { observer.error(e) },
+                        complete: function() {
+
+                            var i = subscriptions.indexOf(subscription);
+
+                            if (i >= 0)
+                                subscriptions.splice(i, 1);
+
+                            closeIfDone();
+                        }
+                    });
+
+                    subscriptions.push(subscription);
+                },
+
+                error: function(e) { return observer.error(e) },
+
+                complete: function() {
+
+                    completed = true;
+                    closeIfDone();
+                }
+            });
+
+            function closeIfDone() {
+
+                if (completed && subscriptions.length === 0)
+                    observer.complete();
+            }
+
+            return function(_) {
+
+                for (var __$0 = (subscriptions)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;)
+                    { var subscription$0 = __$1.value; subscription$0.unsubscribe(); }
+
+                outer.unsubscribe();
+            };
+        });
+    }
 
 });
 

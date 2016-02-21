@@ -48,28 +48,15 @@ const enqueueJob = (function() {
 
 // === Symbol Polyfills ===
 
-function polyfillSymbol(name) {
-
-    if (symbolsSupported() && !Symbol[name])
-        Object.defineProperty(Symbol, name, { value: Symbol(name) });
-}
-
-function symbolsSupported() {
-
-    return typeof Symbol === "function";
-}
-
 function hasSymbol(name) {
 
-    return symbolsSupported() && Boolean(Symbol[name]);
+    return typeof Symbol === "function" && Boolean(Symbol[name]);
 }
 
 function getSymbol(name) {
 
     return hasSymbol(name) ? Symbol[name] : "@@" + name;
 }
-
-polyfillSymbol("observable");
 
 // === Abstract Operations ===
 
@@ -302,9 +289,7 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            let subscription = null;
-
-            subscription = this.subscribe({
+            let subscription = this.subscribe({
 
                 next(value) {
 
@@ -342,8 +327,8 @@ addMethods(Observable.prototype, {
                 return observer.next(value);
             },
 
-            error(value) { return observer.error(value) },
-            complete(value) { return observer.complete(value) },
+            error(e) { return observer.error(e) },
+            complete() { return observer.complete() },
         }));
     },
 
@@ -364,10 +349,127 @@ addMethods(Observable.prototype, {
                 return observer.next(value);
             },
 
-            error(value) { return observer.error(value) },
-            complete(value) { return observer.complete(value) },
+            error(e) { return observer.error(e) },
+            complete() { return observer.complete() },
         }));
     },
+
+    reduce(fn) {
+
+        if (typeof fn !== "function")
+            throw new TypeError(fn + " is not a function");
+
+        let C = getSpecies(this.constructor),
+            hasSeed = arguments.length > 1,
+            hasValue = false,
+            seed = arguments[1],
+            acc = seed;
+
+        return new C(observer => this.subscribe({
+
+            next(value) {
+
+                let first = !hasValue;
+                hasValue = true;
+
+                if (!first || hasSeed) {
+
+                    try { acc = fn(acc, value) }
+                    catch (e) { return observer.error(e) }
+
+                } else {
+
+                    acc = value;
+                }
+            },
+
+            error(e) { return observer.error(e) },
+
+            complete() {
+
+                if (!hasValue && !hasSeed)
+                    observer.error(new TypeError("Cannot reduce an empty sequence"));
+
+                observer.next(acc);
+                observer.complete();
+            },
+
+        }));
+    },
+
+    flatMap(fn) {
+
+        if (typeof fn !== "function")
+            throw new TypeError(fn + " is not a function");
+
+        let C = getSpecies(this.constructor);
+
+        return new C(observer => {
+
+            let completed = false,
+                subscriptions = [];
+
+            // Subscribe to the outer Observable
+            let outer = this.subscribe({
+
+                next(value) {
+
+                    if (fn) {
+
+                        try {
+
+                            value = fn(value);
+
+                        } catch (x) {
+
+                            observer.error(x);
+                            return;
+                        }
+                    }
+
+                    // Subscribe to the inner Observable
+                    let subscription = Observable.from(value).subscribe({
+
+                        next(value) { observer.next(value) },
+                        error(e) { observer.error(e) },
+                        complete() {
+
+                            let i = subscriptions.indexOf(subscription);
+
+                            if (i >= 0)
+                                subscriptions.splice(i, 1);
+
+                            closeIfDone();
+                        }
+                    });
+
+                    subscriptions.push(subscription);
+                },
+
+                error(e) { return observer.error(e) },
+
+                complete() {
+
+                    completed = true;
+                    closeIfDone();
+                }
+            });
+
+            function closeIfDone() {
+
+                if (completed && subscriptions.length === 0)
+                    observer.complete();
+            }
+
+            return _=> {
+
+                for (let subscription of subscriptions)
+                    subscription.unsubscribe();
+
+                outer.unsubscribe();
+            };
+        });
+    }
 
 });
 
