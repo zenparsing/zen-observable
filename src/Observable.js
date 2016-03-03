@@ -1,6 +1,5 @@
-// === Non-Promise Job Queueing ===
-
-const enqueueJob = (function() {
+// === Job Queueing ===
+const enqueueJob = (_=> {
 
     // Node
     if (typeof global !== "undefined" &&
@@ -8,41 +7,15 @@ const enqueueJob = (function() {
         process.nextTick) {
 
         return global.setImmediate ?
-            fn => { global.setImmediate(fn) } :
-            fn => { process.nextTick(fn) };
+            fn => void global.setImmediate(fn) :
+            fn => void process.nextTick(fn);
     }
 
-    // Newish Browsers
-    let Observer = self.MutationObserver || self.WebKitMutationObserver;
-
-    if (Observer) {
-
-        let div = document.createElement("div"),
-            twiddle = _=> div.classList.toggle("x"),
-            queue = [];
-
-        let observer = new Observer(_=> {
-
-            if (queue.length > 1)
-                twiddle();
-
-            while (queue.length > 0)
-                queue.shift()();
-        });
-
-        observer.observe(div, { attributes: true });
-
-        return fn => {
-
-            queue.push(fn);
-
-            if (queue.length === 1)
-                twiddle();
-        };
-    }
-
-    // Fallback
-    return fn => { setTimeout(fn, 0) };
+    // Browsers
+    return fn => void Promise.resolve().then(_=> {
+        try { fn() }
+        catch (e) { setTimeout(_=> { throw e }, 0) }
+    });
 
 })();
 
@@ -53,21 +26,9 @@ function hasSymbol(name) {
     return typeof Symbol === "function" && Boolean(Symbol[name]);
 }
 
-function hasSymbolFor() {
-
-    return typeof Symbol === "function" && typeof Symbol.for === "function";
-}
-
 function getSymbol(name) {
 
-    if (hasSymbol(name))
-        return Symbol[name];
-
-    // TODO: Update es-observable-tests to support Symbol.for?
-    //if (hasSymbolFor())
-    //    return Symbol.for("@@" + name);
-
-    return "@@" + name;
+    return hasSymbol(name) ? Symbol[name] : "@@" + name;
 }
 
 // === Abstract Operations ===

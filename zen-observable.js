@@ -1,6 +1,5 @@
-/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { 'use strict'; // === Non-Promise Job Queueing ===
-
-var enqueueJob = (function() {
+/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { 'use strict'; // === Job Queueing ===
+var enqueueJob = (function(_) {
 
     // Node
     if (typeof global !== "undefined" &&
@@ -8,41 +7,15 @@ var enqueueJob = (function() {
         process.nextTick) {
 
         return global.setImmediate ?
-            function(fn) { global.setImmediate(fn) } :
-            function(fn) { process.nextTick(fn) };
+            function(fn) { return void global.setImmediate(fn); } :
+            function(fn) { return void process.nextTick(fn); };
     }
 
-    // Newish Browsers
-    var Observer = self.MutationObserver || self.WebKitMutationObserver;
-
-    if (Observer) {
-
-        var div$0 = document.createElement("div"),
-            twiddle$0 = function(_) { return div$0.classList.toggle("x"); },
-            queue$0 = [];
-
-        var observer$0 = new Observer(function(_) {
-
-            if (queue$0.length > 1)
-                twiddle$0();
-
-            while (queue$0.length > 0)
-                queue$0.shift()();
-        });
-
-        observer$0.observe(div$0, { attributes: true });
-
-        return function(fn) {
-
-            queue$0.push(fn);
-
-            if (queue$0.length === 1)
-                twiddle$0();
-        };
-    }
-
-    // Fallback
-    return function(fn) { setTimeout(fn, 0) };
+    // Browsers
+    return function(fn) { return void Promise.resolve().then(function(_) {
+        try { fn() }
+        catch (e) { setTimeout(function(_) { throw e }, 0) }
+    }); };
 
 })();
 
@@ -53,21 +26,9 @@ function hasSymbol(name) {
     return typeof Symbol === "function" && Boolean(Symbol[name]);
 }
 
-function hasSymbolFor() {
-
-    return typeof Symbol === "function" && typeof Symbol.for === "function";
-}
-
 function getSymbol(name) {
 
-    if (hasSymbol(name))
-        return Symbol[name];
-
-    // TODO: Update es-observable-tests to support Symbol.for?
-    //if (hasSymbolFor())
-    //    return Symbol.for("@@" + name);
-
-    return "@@" + name;
+    return hasSymbol(name) ? Symbol[name] : "@@" + name;
 }
 
 // === Abstract Operations ===
