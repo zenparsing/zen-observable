@@ -4,11 +4,15 @@ import { TestRunner } from "moon-unit";
 
 import flatMapTests from "./flatMap.js";
 import reduceTests from "./reduce.js";
+import mapTests from "./map.js";
+import filterTests from "./filter.js";
 
 runTests(Observable).then(_=> {
 
     return new TestRunner().inject({ Observable }).run({
+        "map": mapTests,
         "flatMap": flatMapTests,
         "reduce": reduceTests,
+        "filter": filterTests,
     });
 });
