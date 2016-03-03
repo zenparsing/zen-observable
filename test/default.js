@@ -1,4 +1,14 @@
-var runTests = require("es-observable-tests").runTests;
-var Observable = require("../zen-observable.js").Observable;
+import { runTests } from "es-observable-tests";
+import { Observable } from "../src/Observable.js";
+import { TestRunner } from "moon-unit";
 
-runTests(Observable);
+import flatMapTests from "./flatMap.js";
+import reduceTests from "./reduce.js";
+
+runTests(Observable).then(_=> {
+
+    return new TestRunner().inject({ Observable }).run({
+        "flatMap": flatMapTests,
+        "reduce": reduceTests,
+    });
+});

@@ -46,16 +46,28 @@ var enqueueJob = (function() {
 
 })();
 
-// === Symbol Polyfills ===
+// === Symbol Support ===
 
 function hasSymbol(name) {
 
     return typeof Symbol === "function" && Boolean(Symbol[name]);
 }
 
+function hasSymbolFor() {
+
+    return typeof Symbol === "function" && typeof Symbol.for === "function";
+}
+
 function getSymbol(name) {
 
-    return hasSymbol(name) ? Symbol[name] : "@@" + name;
+    if (hasSymbol(name))
+        return Symbol[name];
+
+    // TODO: Update es-observable-tests to support Symbol.for?
+    //if (hasSymbolFor())
+    //    return Symbol.for("@@" + name);
+
+    return "@@" + name;
 }
 
 // === Abstract Operations ===
