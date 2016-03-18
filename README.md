@@ -106,7 +106,7 @@ let subscription = observable.subscribe({
         console.log(x);
     },
     error(err) {
-        console.log(`Finished with error: ${ error }`);
+        console.log(`Finished with error: ${ err }`);
     },
     complete() {
         console.log("Finished");
