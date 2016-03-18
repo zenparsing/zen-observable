@@ -1,4 +1,4 @@
-/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { 'use strict'; // === Job Queueing ===
+(function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { 'use strict'; // === Job Queueing ===
 var enqueueJob = (function(_) {
 
     // Node
@@ -168,7 +168,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
                 return undefined;
 
             // Send the next value to the sink
-            return m$0.call(observer, value);
+            return m$0.call(observer, value, subscription);
 
         } catch (e) {
 
@@ -262,9 +262,9 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            var subscription = __this.subscribe({
+            __this.subscribe({
 
-                next: function(value) {
+                next: function(value, subscription) {
 
                     try {
 
