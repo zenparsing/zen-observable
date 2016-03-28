@@ -168,7 +168,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
                 return undefined;
 
             // Send the next value to the sink
-            return m.call(observer, value, subscription);
+            return m.call(observer, value);
 
         } catch (e) {
 
@@ -262,9 +262,9 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            this.subscribe({
+            let subscription = this.subscribe({
 
-                next(value, subscription) {
+                next(value) {
 
                     try {
 
