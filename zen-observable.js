@@ -1,4 +1,4 @@
-/*=esdown=*/(function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { 'use strict'; // === Job Queueing ===
+'use strict'; (function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { // === Job Queueing ===
 var enqueueJob = (function(_) {
 
     // Node
@@ -140,7 +140,8 @@ function Subscription(observer, subscriber) {
 }
 
 addMethods(Subscription.prototype = {}, {
-    unsubscribe: function() { closeSubscription(this) }
+    get closed() { return subscriptionClosed(this) },
+    unsubscribe: function() { closeSubscription(this) },
 });
 
 function SubscriptionObserver(subscription) {
@@ -148,6 +149,8 @@ function SubscriptionObserver(subscription) {
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
+
+    get closed() { return subscriptionClosed(this._subscription) },
 
     next: function(value) {
 
@@ -262,24 +265,76 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
+            var state = "executing",
+                queue = [];
+
+            function send(type, value) {
+
+                switch (type) {
+
+                    case "error":
+                        state = "completed";
+                        reject(value);
+                        return;
+
+                    case "complete":
+                        state = "completed";
+                        resolve(value);
+                        return;
+                }
+
+                try {
+
+                    state = "executing";
+                    fn(value);
+
+                    if (queue.length === 0)
+                        state = "ready";
+
+                } catch (err) {
+
+                    state = "completed";
+                    subscription.unsubscribe();
+                    reject(err);
+                }
+            }
+
+            function enqueue(type, value) {
+
+                if (state === "completed")
+                    return;
+
+                if (state === "ready")
+                    return send(type, value);
+
+                // Assert: state === "executing"
+                if (queue.length === 0)
+                    Promise.resolve().then(flush);
+
+                queue.push({ type: type, value: value });
+            }
+
+            function flush() {
+
+                var list = queue;
+                queue = [];
+
+                for (var __$0 = (list)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var entry$0 = __$1.value; 
+
+                    send(entry$0.type, entry$0.value);
+
+                    if (state === "completed")
+                        return;
+                }
+            }
+
             var subscription = __this.subscribe({
-
-                next: function(value) {
-
-                    try {
-
-                        return fn(value);
-
-                    } catch (e) {
-
-                        reject(e);
-                        subscription.unsubscribe();
-                    }
-                },
-
-                error: reject,
-                complete: resolve,
+                next: function(x) { enqueue("next", x) },
+                error: function(x) { enqueue("error", x) },
+                complete: function(x) { enqueue("complete", x) },
             });
+
+            state = "ready";
         });
     },
 
@@ -294,6 +349,9 @@ addMethods(Observable.prototype, {
 
             next: function(value) {
 
+                if (observer.closed)
+                    return;
+
                 try { value = fn(value) }
                 catch (e) { return observer.error(e) }
 
@@ -301,7 +359,7 @@ addMethods(Observable.prototype, {
             },
 
             error: function(e) { return observer.error(e) },
-            complete: function() { return observer.complete() },
+            complete: function(x) { return observer.complete(x) },
         }); });
     },
 
@@ -316,7 +374,10 @@ addMethods(Observable.prototype, {
 
             next: function(value) {
 
-                try { if (!fn(value)) return undefined; }
+                if (observer.closed)
+                    return;
+
+                try { if (!fn(value)) return undefined }
                 catch (e) { return observer.error(e) }
 
                 return observer.next(value);
@@ -342,6 +403,9 @@ addMethods(Observable.prototype, {
 
             next: function(value) {
 
+                if (observer.closed)
+                    return;
+
                 var first = !hasValue;
                 hasValue = true;
 
@@ -360,8 +424,10 @@ addMethods(Observable.prototype, {
 
             complete: function() {
 
-                if (!hasValue && !hasSeed)
+                if (!hasValue && !hasSeed) {
                     observer.error(new TypeError("Cannot reduce an empty sequence"));
+                    return;
+                }
 
                 observer.next(acc);
                 observer.complete();
@@ -400,12 +466,17 @@ addMethods(Observable.prototype, {
                         }
                     }
 
+                    var subscription;
+
                     // Subscribe to the inner Observable
-                    var subscription = Observable.from(value).subscribe({
+                    subscription = Observable.from(value).subscribe({
 
                         next: function(value) { observer.next(value) },
                         error: function(e) { observer.error(e) },
                         complete: function() {
+
+                            if (!subscription)
+                                return;
 
                             var i = subscriptions.indexOf(subscription);
 
@@ -416,10 +487,14 @@ addMethods(Observable.prototype, {
                         }
                     });
 
-                    subscriptions.push(subscription);
+                    if (!subscription.closed)
+                        subscriptions.push(subscription);
                 },
 
-                error: function(e) { return observer.error(e) },
+                error: function(e) {
+
+                    return observer.error(e);
+                },
 
                 complete: function() {
 
@@ -476,53 +551,33 @@ addMethods(Observable, {
 
         return new C(function(observer) {
 
-            var done = false;
+            // Assume that the object is iterable.  If not, then the observer
+            // will receive an error.
+            try {
 
-            enqueueJob(function(_) {
+                if (hasSymbol("iterator")) {
 
-                if (done)
-                    return;
+                    for (var __$0 = (x)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;)
+                        { var item$0 = __$1.value; observer.next(item$0); }
 
-                // Assume that the object is iterable.  If not, then the observer
-                // will receive an error.
-                try {
+                } else {
 
-                    if (hasSymbol("iterator")) {
+                    if (!Array.isArray(x))
+                        throw new Error(x + " is not an Array");
 
-                        for (var __$0 = (x)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var item$0 = __$1.value; 
-
-                            observer.next(item$0);
-
-                            if (done)
-                                return;
-                        }
-
-                    } else {
-
-                        if (!Array.isArray(x))
-                            throw new Error(x + " is not an Array");
-
-                        for (var i$0 = 0; i$0 < x.length; ++i$0) {
-
-                            observer.next(x[i$0]);
-
-                            if (done)
-                                return;
-                        }
-                    }
-
-                } catch (e) {
-
-                    // If observer.next throws an error, then the subscription will
-                    // be closed and the error method will simply rethrow
-                    observer.error(e);
-                    return;
+                    for (var i$0 = 0; i$0 < x.length; ++i$0)
+                        observer.next(x[i$0]);
                 }
 
-                observer.complete();
-            });
+            } catch (e) {
 
-            return function(_) { done = true };
+                // If observer.next throws an error, then the subscription will
+                // be closed and the error method will simply rethrow
+                observer.error(e);
+                return;
+            }
+
+            observer.complete();
         });
     },
 
@@ -532,25 +587,10 @@ addMethods(Observable, {
 
         return new C(function(observer) {
 
-            var done = false;
+            for (var i$1 = 0; i$1 < items.length; ++i$1)
+                observer.next(items[i$1]);
 
-            enqueueJob(function(_) {
-
-                if (done)
-                    return;
-
-                for (var i$1 = 0; i$1 < items.length; ++i$1) {
-
-                    observer.next(items[i$1]);
-
-                    if (done)
-                        return;
-                }
-
-                observer.complete();
-            });
-
-            return function(_) { done = true };
+            observer.complete();
         });
     },
 
