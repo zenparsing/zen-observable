@@ -265,76 +265,34 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            var state = "executing",
-                queue = [];
+            var subscription, error;
 
-            function send(type, value) {
+            subscription = __this.subscribe({
 
-                switch (type) {
+                next: function(value) {
 
-                    case "error":
-                        state = "completed";
-                        reject(value);
+                    if (error)
                         return;
 
-                    case "complete":
-                        state = "completed";
-                        resolve(value);
-                        return;
-                }
+                    try {
 
-                try {
+                        return fn(value);
 
-                    state = "executing";
-                    fn(value);
+                    } catch (err) {
 
-                    if (queue.length === 0)
-                        state = "ready";
+                        reject(error = err);
 
-                } catch (err) {
+                        if (subscription)
+                            subscription.unsubscribe();
+                    }
+                },
 
-                    state = "completed";
-                    subscription.unsubscribe();
-                    reject(err);
-                }
-            }
-
-            function enqueue(type, value) {
-
-                if (state === "completed")
-                    return;
-
-                if (state === "ready")
-                    return send(type, value);
-
-                // Assert: state === "executing"
-                if (queue.length === 0)
-                    Promise.resolve().then(flush);
-
-                queue.push({ type: type, value: value });
-            }
-
-            function flush() {
-
-                var list = queue;
-                queue = [];
-
-                for (var __$0 = (list)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var entry$0 = __$1.value; 
-
-                    send(entry$0.type, entry$0.value);
-
-                    if (state === "completed")
-                        return;
-                }
-            }
-
-            var subscription = __this.subscribe({
-                next: function(x) { enqueue("next", x) },
-                error: function(x) { enqueue("error", x) },
-                complete: function(x) { enqueue("complete", x) },
+                error: reject,
+                complete: resolve,
             });
 
-            state = "ready";
+            if (error)
+                subscription.unsubscribe();
         });
     },
 
