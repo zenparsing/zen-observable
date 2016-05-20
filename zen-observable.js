@@ -108,6 +108,14 @@ function Subscription(observer, subscriber) {
     this._cleanup = undefined;
     this._observer = observer;
 
+    var start = getMethod(observer, "start");
+
+    if (start)
+        start.call(observer, this);
+
+    if (subscriptionClosed(this))
+        return;
+
     observer = new SubscriptionObserver(this);
 
     try {
@@ -265,13 +273,15 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            var subscription, error;
+            __this.subscribe({
 
-            subscription = __this.subscribe({
+                _subscription: null,
+
+                start: function(s) { this._subscription = s },
 
                 next: function(value) {
 
-                    if (error)
+                    if (this._subscription.closed)
                         return;
 
                     try {
@@ -280,19 +290,14 @@ addMethods(Observable.prototype, {
 
                     } catch (err) {
 
-                        reject(error = err);
-
-                        if (subscription)
-                            subscription.unsubscribe();
+                        reject(err);
+                        this._subscription.unsubscribe();
                     }
                 },
 
                 error: reject,
                 complete: resolve,
             });
-
-            if (error)
-                subscription.unsubscribe();
         });
     },
 
@@ -515,16 +520,27 @@ addMethods(Observable, {
 
                 if (hasSymbol("iterator")) {
 
-                    for (var __$0 = (x)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;)
-                        { var item$0 = __$1.value; observer.next(item$0); }
+                    for (var __$0 = (x)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var item$0 = __$1.value; 
+
+                        observer.next(item$0);
+
+                        if (observer.closed)
+                            return;
+                    }
 
                 } else {
 
                     if (!Array.isArray(x))
                         throw new Error(x + " is not an Array");
 
-                    for (var i$0 = 0; i$0 < x.length; ++i$0)
+                    for (var i$0 = 0; i$0 < x.length; ++i$0) {
+
                         observer.next(x[i$0]);
+
+                        if (observer.closed)
+                            return;
+                    }
+
                 }
 
             } catch (e) {
@@ -545,8 +561,13 @@ addMethods(Observable, {
 
         return new C(function(observer) {
 
-            for (var i$1 = 0; i$1 < items.length; ++i$1)
+            for (var i$1 = 0; i$1 < items.length; ++i$1) {
+
                 observer.next(items[i$1]);
+
+                if (observer.closed)
+                    return;
+            }
 
             observer.complete();
         });

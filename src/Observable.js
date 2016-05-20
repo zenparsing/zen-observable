@@ -116,6 +116,14 @@ function Subscription(observer, subscriber) {
     this._cleanup = undefined;
     this._observer = observer;
 
+    let start = getMethod(observer, "start");
+
+    if (start)
+        start.call(observer, this);
+
+    if (subscriptionClosed(this))
+        return;
+
     observer = new SubscriptionObserver(this);
 
     try {
@@ -273,13 +281,15 @@ addMethods(Observable.prototype, {
             if (typeof fn !== "function")
                 throw new TypeError(fn + " is not a function");
 
-            let subscription, error;
+            this.subscribe({
 
-            subscription = this.subscribe({
+                _subscription: null,
+
+                start(s) { this._subscription = s },
 
                 next(value) {
 
-                    if (error)
+                    if (this._subscription.closed)
                         return;
 
                     try {
@@ -288,19 +298,14 @@ addMethods(Observable.prototype, {
 
                     } catch (err) {
 
-                        reject(error = err);
-
-                        if (subscription)
-                            subscription.unsubscribe();
+                        reject(err);
+                        this._subscription.unsubscribe();
                     }
                 },
 
                 error: reject,
                 complete: resolve,
             });
-
-            if (error)
-                subscription.unsubscribe();
         });
     },
 
@@ -523,16 +528,27 @@ addMethods(Observable, {
 
                 if (hasSymbol("iterator")) {
 
-                    for (let item of x)
+                    for (let item of x) {
+
                         observer.next(item);
+
+                        if (observer.closed)
+                            return;
+                    }
 
                 } else {
 
                     if (!Array.isArray(x))
                         throw new Error(x + " is not an Array");
 
-                    for (let i = 0; i < x.length; ++i)
+                    for (let i = 0; i < x.length; ++i) {
+
                         observer.next(x[i]);
+
+                        if (observer.closed)
+                            return;
+                    }
+
                 }
 
             } catch (e) {
@@ -553,8 +569,13 @@ addMethods(Observable, {
 
         return new C(observer => {
 
-            for (let i = 0; i < items.length; ++i)
+            for (let i = 0; i < items.length; ++i) {
+
                 observer.next(items[i]);
+
+                if (observer.closed)
+                    return;
+            }
 
             observer.complete();
         });
