@@ -516,39 +516,29 @@ addMethods(Observable, {
 
             // Assume that the object is iterable.  If not, then the observer
             // will receive an error.
-            try {
+            if (hasSymbol("iterator")) {
 
-                if (hasSymbol("iterator")) {
+                for (var __$0 = (x)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var item$0 = __$1.value; 
 
-                    for (var __$0 = (x)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var item$0 = __$1.value; 
+                    observer.next(item$0);
 
-                        observer.next(item$0);
-
-                        if (observer.closed)
-                            return;
-                    }
-
-                } else {
-
-                    if (!Array.isArray(x))
-                        throw new Error(x + " is not an Array");
-
-                    for (var i$0 = 0; i$0 < x.length; ++i$0) {
-
-                        observer.next(x[i$0]);
-
-                        if (observer.closed)
-                            return;
-                    }
-
+                    if (observer.closed)
+                        return;
                 }
 
-            } catch (e) {
+            } else {
 
-                // If observer.next throws an error, then the subscription will
-                // be closed and the error method will simply rethrow
-                observer.error(e);
-                return;
+                if (!Array.isArray(x))
+                    throw new Error(x + " is not an Array");
+
+                for (var i$0 = 0; i$0 < x.length; ++i$0) {
+
+                    observer.next(x[i$0]);
+
+                    if (observer.closed)
+                        return;
+                }
+
             }
 
             observer.complete();
