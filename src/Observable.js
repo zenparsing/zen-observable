@@ -28,15 +28,7 @@ function hasSymbol(name) {
 
 function getSymbol(name) {
 
-    if (hasSymbol(name)) {
-        return Symbol[name]
-    }
-
-    if (typeof Symbol === "function" && typeof Symbol["for"] === "function") {
-        return Symbol[name] = Symbol["for"](name);
-    }
-
-    return "@@" + name;
+    return hasSymbol(name) ? Symbol[name] : "@@" + name;
 }
 
 // === Abstract Operations ===
