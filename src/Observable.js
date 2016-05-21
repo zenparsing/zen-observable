@@ -525,13 +525,11 @@ addMethods(Observable, {
             return new C(observer => observable.subscribe(observer));
         }
 
-        return new C(observer => {
+        if (hasSymbol("iterator") && (method = getMethod(x, getSymbol("iterator")))) {
 
-            // Assume that the object is iterable.  If not, then the observer
-            // will receive an error.
-            if (hasSymbol("iterator")) {
+            return new C(observer => {
 
-                for (let item of x) {
+                for (let item of method.call(x)) {
 
                     observer.next(item);
 
@@ -539,10 +537,13 @@ addMethods(Observable, {
                         return;
                 }
 
-            } else {
+                observer.complete();
+            });
+        }
 
-                if (!Array.isArray(x))
-                    throw new Error(x + " is not an Array");
+        if (Array.isArray(x)) {
+
+            return new C(observer => {
 
                 for (let i = 0; i < x.length; ++i) {
 
@@ -552,10 +553,11 @@ addMethods(Observable, {
                         return;
                 }
 
-            }
+                observer.complete();
+            });
+        }
 
-            observer.complete();
-        });
+        throw new TypeError(x + " is not observable");
     },
 
     of(...items) {

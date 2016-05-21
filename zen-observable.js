@@ -525,13 +525,11 @@ addMethods(Observable, {
             return new C(function(observer) { return observable$0.subscribe(observer); });
         }
 
-        return new C(function(observer) {
+        if (hasSymbol("iterator") && (method = getMethod(x, getSymbol("iterator")))) {
 
-            // Assume that the object is iterable.  If not, then the observer
-            // will receive an error.
-            if (hasSymbol("iterator")) {
+            return new C(function(observer) {
 
-                for (var __$0 = (x)[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var item$0 = __$1.value; 
+                for (var __$0 = (method.call(x))[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var item$0 = __$1.value; 
 
                     observer.next(item$0);
 
@@ -539,10 +537,13 @@ addMethods(Observable, {
                         return;
                 }
 
-            } else {
+                observer.complete();
+            });
+        }
 
-                if (!Array.isArray(x))
-                    throw new Error(x + " is not an Array");
+        if (Array.isArray(x)) {
+
+            return new C(function(observer) {
 
                 for (var i$0 = 0; i$0 < x.length; ++i$0) {
 
@@ -552,10 +553,11 @@ addMethods(Observable, {
                         return;
                 }
 
-            }
+                observer.complete();
+            });
+        }
 
-            observer.complete();
-        });
+        throw new TypeError(x + " is not observable");
     },
 
     of: function() { for (var items = [], __$0 = 0; __$0 < arguments.length; ++__$0) items.push(arguments[__$0]); 
