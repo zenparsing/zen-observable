@@ -261,7 +261,16 @@ export function Observable(subscriber) {
 
 addMethods(Observable.prototype, {
 
-    subscribe(observer) {
+    subscribe(observer, ...callbacks) {
+
+        if (typeof observer === "function") {
+
+            observer = {
+                next: observer,
+                error: callbacks[0],
+                complete: callbacks[1]
+            };
+        }
 
         return new Subscription(observer, this._subscriber);
     },
@@ -437,19 +446,18 @@ addMethods(Observable.prototype, {
                         }
                     }
 
-                    let subscription;
-
                     // Subscribe to the inner Observable
-                    subscription = Observable.from(value).subscribe({
+                    Observable.from(value).subscribe({
 
+                        _subscription: null,
+
+                        start(s) { subscriptions.push(this._subscription = s) },
                         next(value) { observer.next(value) },
                         error(e) { observer.error(e) },
+
                         complete() {
 
-                            if (!subscription)
-                                return;
-
-                            let i = subscriptions.indexOf(subscription);
+                            let i = subscriptions.indexOf(this._subscription);
 
                             if (i >= 0)
                                 subscriptions.splice(i, 1);
@@ -457,9 +465,6 @@ addMethods(Observable.prototype, {
                             closeIfDone();
                         }
                     });
-
-                    if (!subscription.closed)
-                        subscriptions.push(subscription);
                 },
 
                 error(e) {

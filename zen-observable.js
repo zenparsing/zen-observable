@@ -261,7 +261,16 @@ function Observable(subscriber) {
 
 addMethods(Observable.prototype, {
 
-    subscribe: function(observer) {
+    subscribe: function(observer) { for (var callbacks = [], __$0 = 1; __$0 < arguments.length; ++__$0) callbacks.push(arguments[__$0]); 
+
+        if (typeof observer === "function") {
+
+            observer = {
+                next: observer,
+                error: callbacks[0],
+                complete: callbacks[1]
+            };
+        }
 
         return new Subscription(observer, this._subscriber);
     },
@@ -437,19 +446,18 @@ addMethods(Observable.prototype, {
                         }
                     }
 
-                    var subscription;
-
                     // Subscribe to the inner Observable
-                    subscription = Observable.from(value).subscribe({
+                    Observable.from(value).subscribe({
 
+                        _subscription: null,
+
+                        start: function(s) { subscriptions.push(this._subscription = s) },
                         next: function(value) { observer.next(value) },
                         error: function(e) { observer.error(e) },
+
                         complete: function() {
 
-                            if (!subscription)
-                                return;
-
-                            var i = subscriptions.indexOf(subscription);
+                            var i = subscriptions.indexOf(this._subscription);
 
                             if (i >= 0)
                                 subscriptions.splice(i, 1);
@@ -457,9 +465,6 @@ addMethods(Observable.prototype, {
                             closeIfDone();
                         }
                     });
-
-                    if (!subscription.closed)
-                        subscriptions.push(subscription);
                 },
 
                 error: function(e) {
