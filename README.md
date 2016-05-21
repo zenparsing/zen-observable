@@ -178,12 +178,13 @@ Observable.of(1, 2, 3).map(value => {
 ```js
 Observable.of(0, 1, 2, 3, 4).reduce((previousValue, currentValue) => {
     return previousValue + currentValue;
-}).then(result => {
-    assert(result === 10);
+}).forEach(result => {
+    console.log(result);
 });
+// 10
 ```
 
-Returns a new Observable that applies a function against an accumulator and each value of the stream to reduce it to a single value.  The result value is returned asynchronously as a Promise.
+Returns a new Observable that applies a function against an accumulator and each value of the stream to reduce it to a single value.
 
 
 ### observable.flatMap ( callback )
