@@ -127,12 +127,6 @@ The returned subscription object can be used to cancel the stream.
 subscription.unsubscribe();
 ```
 
-You can also subscribe with functions, rather than an observer object.
-
-```js
-let subscription = observable.subscribe((x) => console.log(x));
-```
-
 ### observable.forEach ( callback )
 
 ```js

@@ -261,16 +261,7 @@ export function Observable(subscriber) {
 
 addMethods(Observable.prototype, {
 
-    subscribe(observer, ...callbacks) {
-
-        if (typeof observer === "function") {
-
-            observer = {
-                next: observer,
-                error: callbacks[0],
-                complete: callbacks[1]
-            };
-        }
+    subscribe(observer) {
 
         return new Subscription(observer, this._subscriber);
     },
