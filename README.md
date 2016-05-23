@@ -67,20 +67,20 @@ The subscriber function can optionally return either a cleanup function or a sub
 ### Observable.of ( ...items )
 
 ```js
-// Asynchronously logs 1, 2, 3 in a future turn
+// Logs 1, 2, 3
 Observable.of(1, 2, 3).forEach(x => {
     console.log(x);
 });
 ```
 
-Returns an observable which will emit each supplied argument asynchronously in a future turn of the event loop.
+Returns an observable which will emit each supplied argument.
 
 ### Observable.from ( value )
 
 ```js
 let list = [1, 2, 3];
 
-// Asynchronously iterate over an object
+// Iterate over an object
 Observable.from(list).forEach(x => {
     console.log(x);
 });
@@ -96,7 +96,7 @@ Observable.from(otherObservable).forEach(x => {
 Converts `value` to an Observable.
 
 - If `value` is an implementation of ES Observables, then it is converted to an instance of Observable as defined by this library.
-- Otherwise, it is converted to an Observable which asynchronously iterates over `value`.
+- Otherwise, it is converted to an Observable which synchronously iterates over `value`.
 
 ### observable.subscribe ( observer )
 
@@ -125,6 +125,12 @@ The returned subscription object can be used to cancel the stream.
 ```js
 // Stop receiving data from the stream
 subscription.unsubscribe();
+```
+
+You can also subscribe with functions, rather than an observer object.
+
+```js
+let subscription = observable.subscribe((x) => console.log(x));
 ```
 
 ### observable.forEach ( callback )
