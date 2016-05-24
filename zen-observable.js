@@ -1,25 +1,4 @@
-'use strict'; (function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { // === Job Queueing ===
-var enqueueJob = (function(_) {
-
-    // Node
-    if (typeof global !== "undefined" &&
-        typeof process !== "undefined" &&
-        process.nextTick) {
-
-        return global.setImmediate ?
-            function(fn) { return void global.setImmediate(fn); } :
-            function(fn) { return void process.nextTick(fn); };
-    }
-
-    // Browsers
-    return function(fn) { return void Promise.resolve().then(function(_) {
-        try { fn() }
-        catch (e) { setTimeout(function(_) { throw e }, 0) }
-    }); };
-
-})();
-
-// === Symbol Support ===
+'use strict'; (function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { // === Symbol Support ===
 
 function hasSymbol(name) {
 
@@ -261,16 +240,7 @@ function Observable(subscriber) {
 
 addMethods(Observable.prototype, {
 
-    subscribe: function(observer) { for (var callbacks = [], __$0 = 1; __$0 < arguments.length; ++__$0) callbacks.push(arguments[__$0]); 
-
-        if (typeof observer === "function") {
-
-            observer = {
-                next: observer,
-                error: callbacks[0],
-                complete: callbacks[1]
-            };
-        }
+    subscribe: function(observer) {
 
         return new Subscription(observer, this._subscriber);
     },

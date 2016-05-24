@@ -1,24 +1,3 @@
-// === Job Queueing ===
-const enqueueJob = (_=> {
-
-    // Node
-    if (typeof global !== "undefined" &&
-        typeof process !== "undefined" &&
-        process.nextTick) {
-
-        return global.setImmediate ?
-            fn => void global.setImmediate(fn) :
-            fn => void process.nextTick(fn);
-    }
-
-    // Browsers
-    return fn => void Promise.resolve().then(_=> {
-        try { fn() }
-        catch (e) { setTimeout(_=> { throw e }, 0) }
-    });
-
-})();
-
 // === Symbol Support ===
 
 function hasSymbol(name) {
