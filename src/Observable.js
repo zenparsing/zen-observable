@@ -240,55 +240,61 @@ export function Observable(subscriber) {
 
 addMethods(Observable.prototype, {
 
-    subscribe(observer) {
+    subscribe(observer, ...args) {
+
+        if (typeof observer === 'function') {
+
+            observer = {
+                next: observer,
+                error: args[0],
+                complete: args[1],
+            };
+        }
 
         return new Subscription(observer, this._subscriber);
     },
 
     forEach(fn) {
 
-        return Promise.resolve().then(() => {
+        return new Promise((resolve, reject) => {
 
             if (typeof fn !== "function")
                 return Promise.reject(new TypeError(fn + " is not a function"));
 
-            return new Promise((resolve, reject) => {
+            this.subscribe({
 
-                this.subscribe({
+                _subscription: null,
 
-                    _subscription: null,
+                start(subscription) {
 
-                    start(subscription) {
+                    if (Object(subscription) !== subscription)
+                        throw new TypeError(subscription + " is not an object");
 
-                        if (Object(subscription) !== subscription)
-                            throw new TypeError(subscription + " is not an object");
+                    this._subscription = subscription;
+                },
 
-                        this._subscription = subscription;
-                    },
+                next(value) {
 
-                    next(value) {
+                    let subscription = this._subscription;
 
-                        let subscription = this._subscription;
+                    if (subscription.closed)
+                        return;
 
-                        if (subscription.closed)
-                            return;
+                    try {
 
-                        try {
+                        return fn(value);
 
-                            return fn(value);
+                    } catch (err) {
 
-                        } catch (err) {
+                        reject(err);
+                        subscription.unsubscribe();
+                    }
+                },
 
-                            reject(err);
-                            subscription.unsubscribe();
-                        }
-                    },
-
-                    error: reject,
-                    complete: resolve,
-                });
-
+                error: reject,
+                complete: resolve,
             });
+
         });
     },
 

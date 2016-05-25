@@ -240,7 +240,16 @@ function Observable(subscriber) {
 
 addMethods(Observable.prototype, {
 
-    subscribe: function(observer) {
+    subscribe: function(observer) { for (var args = [], __$0 = 1; __$0 < arguments.length; ++__$0) args.push(arguments[__$0]); 
+
+        if (typeof observer === 'function') {
+
+            observer = {
+                next: observer,
+                error: args[0],
+                complete: args[1],
+            };
+        }
 
         return new Subscription(observer, this._subscriber);
     },
@@ -250,7 +259,7 @@ addMethods(Observable.prototype, {
         return new Promise(function(resolve, reject) {
 
             if (typeof fn !== "function")
-                throw new TypeError(fn + " is not a function");
+                return Promise.reject(new TypeError(fn + " is not a function"));
 
             __this.subscribe({
 
@@ -285,6 +294,7 @@ addMethods(Observable.prototype, {
                 error: reject,
                 complete: resolve,
             });
+
         });
     },
 

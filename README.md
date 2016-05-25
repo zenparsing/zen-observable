@@ -20,7 +20,7 @@ Node:
 
 ```js
 var Observable = require("zen-observable");
-Observable.of(1, 2, 3).forEach(x => console.log(x));
+Observable.of(1, 2, 3).subscribe(x => console.log(x));
 ```
 
 Browser:
@@ -28,7 +28,7 @@ Browser:
 ```html
 <script src="zen-observable.js"></script>
 <script>
-    Observable.of(1, 2, 3).forEach(x => console.log(x));
+    Observable.of(1, 2, 3).subscribe(x => console.log(x));
 </script>
 ```
 
@@ -36,7 +36,7 @@ ES Modules:
 
 ```js
 import { Observable } from "zen-observable";
-Observable.of(1, 2, 3).forEach(x => console.log(x));
+Observable.of(1, 2, 3).subscribe(x => console.log(x));
 ```
 
 ## API
@@ -68,7 +68,7 @@ The subscriber function can optionally return either a cleanup function or a sub
 
 ```js
 // Logs 1, 2, 3
-Observable.of(1, 2, 3).forEach(x => {
+Observable.of(1, 2, 3).subscribe(x => {
     console.log(x);
 });
 ```
@@ -81,14 +81,14 @@ Returns an observable which will emit each supplied argument.
 let list = [1, 2, 3];
 
 // Iterate over an object
-Observable.from(list).forEach(x => {
+Observable.from(list).subscribe(x => {
     console.log(x);
 });
 ```
 
 ```js
 // Convert something "observable" to an Observable instance
-Observable.from(otherObservable).forEach(x => {
+Observable.from(otherObservable).subscribe(x => {
     console.log(x);
 });
 ```
@@ -102,30 +102,29 @@ Converts `value` to an Observable.
 
 ```js
 let subscription = observable.subscribe({
-    next(x) {
-        console.log(x);
-    },
-    error(err) {
-        console.log(`Finished with error: ${ err }`);
-    },
-    complete() {
-        console.log("Finished");
-    }
+    next(x) { console.log(x) },
+    error(err) { console.log(`Finished with error: ${ err }`) },
+    complete() { console.log("Finished") }
 })
 ```
 
 Subscribes to the observable.  The `observer` argument must be an object.  It may have any of the following methods:
 
+- `start(subscription)` Receives the subscription object during initialization.
 - `next(value)` Receives the next value of the sequence.
 - `error(exception)` Receives the terminating error of the sequence.
 - `complete()` Called when the stream has completed successfully.
 
-The returned subscription object can be used to cancel the stream.
+The subscription object can be used to cancel the stream.
 
 ```js
 // Stop receiving data from the stream
 subscription.unsubscribe();
 ```
+
+## Extended API
+
+*The following methods are not yet defined by the ES Observable specification.*
 
 ### observable.forEach ( callback )
 
@@ -141,16 +140,12 @@ observable.forEach(x => {
 
 Subscribes to the observable and returns a Promise for the completion value of the stream.  The `callback` argument is called once for each value in the stream.
 
-## Extended API
-
-*The following methods are not yet defined by the ES Observable specification.*
-
 ### observable.filter ( callback )
 
 ```js
 Observable.of(1, 2, 3).filter(value => {
     return value > 2;
-}).forEach(value => {
+}).subscribe(value => {
     console.log(value);
 });
 // 3
@@ -165,7 +160,7 @@ Returns a new Observable that emits the results of calling the `callback` argume
 ```js
 Observable.of(1, 2, 3).map(value => {
     return value * 2;
-}).forEach(value => {
+}).subscribe(value => {
     console.log(value);
 });
 // 2
@@ -178,7 +173,7 @@ Observable.of(1, 2, 3).map(value => {
 ```js
 Observable.of(0, 1, 2, 3, 4).reduce((previousValue, currentValue) => {
     return previousValue + currentValue;
-}).forEach(result => {
+}).subscribe(result => {
     console.log(result);
 });
 // 10
@@ -194,7 +189,7 @@ Returns a new Observable that emits the values from each Observable that is retu
 ```js
 Observable.of("Hello", "Goodbye").flatMap(value => {
     return Observable.of(value + " Earth", value + " Mars");
-}).forEach(value => {
+}).subscribe(value => {
     console.log(value);
 });
 // "Hello Earth"
