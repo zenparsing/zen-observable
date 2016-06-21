@@ -35,7 +35,7 @@ Browser:
 ES Modules:
 
 ```js
-import { Observable } from "zen-observable";
+import Observable from "zen-observable";
 Observable.of(1, 2, 3).subscribe(x => console.log(x));
 ```
 
