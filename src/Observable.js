@@ -28,7 +28,7 @@ function getMethod(obj, key) {
 function getSpecies(ctor) {
 
     let symbol = getSymbol("species");
-    return symbol ? ctor[symbol] : ctor;
+    return symbol && ctor[symbol] ? ctor[symbol] : ctor;
 }
 
 function addMethods(target, methods) {
