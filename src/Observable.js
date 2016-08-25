@@ -143,7 +143,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
         let subscription = this._subscription;
 
-        // If the stream if closed, then return undefined
+        // If the stream is closed, then return undefined
         if (subscriptionClosed(subscription))
             return undefined;
 
