@@ -148,24 +148,14 @@ addMethods(SubscriptionObserver.prototype = {}, {
             return undefined;
 
         let observer = subscription._observer;
+        let m = getMethod(observer, "next");
 
-        try {
+        // If the observer doesn't support "next", then return undefined
+        if (!m)
+            return undefined;
 
-            let m = getMethod(observer, "next");
-
-            // If the observer doesn't support "next", then return undefined
-            if (!m)
-                return undefined;
-
-            // Send the next value to the sink
-            return m.call(observer, value);
-
-        } catch (e) {
-
-            // If the observer throws, then close the stream and rethrow the error
-            try { closeSubscription(subscription) }
-            finally { throw e }
-        }
+        // Send the next value to the sink
+        return m.call(observer, value);
     },
 
     error(value) {
@@ -380,7 +370,7 @@ addMethods(Observable.prototype, {
                 }
             },
 
-            error(e) { return observer.error(e) },
+            error(e) { observer.error(e) },
 
             complete() {
 
