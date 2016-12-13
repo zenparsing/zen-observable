@@ -143,29 +143,19 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
         var subscription = this._subscription;
 
-        // If the stream if closed, then return undefined
+        // If the stream is closed, then return undefined
         if (subscriptionClosed(subscription))
             return undefined;
 
         var observer = subscription._observer;
+        var m = getMethod(observer, "next");
 
-        try {
+        // If the observer doesn't support "next", then return undefined
+        if (!m)
+            return undefined;
 
-            var m$0 = getMethod(observer, "next");
-
-            // If the observer doesn't support "next", then return undefined
-            if (!m$0)
-                return undefined;
-
-            // Send the next value to the sink
-            return m$0.call(observer, value);
-
-        } catch (e) {
-
-            // If the observer throws, then close the stream and rethrow the error
-            try { closeSubscription(subscription) }
-            finally { throw e }
-        }
+        // Send the next value to the sink
+        return m.call(observer, value);
     },
 
     error: function(value) {
@@ -181,13 +171,13 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
         try {
 
-            var m$1 = getMethod(observer, "error");
+            var m$0 = getMethod(observer, "error");
 
             // If the sink does not support "error", then throw the error to the caller
-            if (!m$1)
+            if (!m$0)
                 throw value;
 
-            value = m$1.call(observer, value);
+            value = m$0.call(observer, value);
 
         } catch (e) {
 
@@ -212,10 +202,10 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
         try {
 
-            var m$2 = getMethod(observer, "complete");
+            var m$1 = getMethod(observer, "complete");
 
             // If the sink does not support "complete", then return undefined
-            value = m$2 ? m$2.call(observer, value) : undefined;
+            value = m$1 ? m$1.call(observer, value) : undefined;
 
         } catch (e) {
 
@@ -380,7 +370,7 @@ addMethods(Observable.prototype, {
                 }
             },
 
-            error: function(e) { return observer.error(e) },
+            error: function(e) { observer.error(e) },
 
             complete: function() {
 
