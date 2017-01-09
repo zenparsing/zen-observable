@@ -246,10 +246,10 @@ addMethods(Observable.prototype, {
 
     forEach(fn) {
 
-        return new Promise((resolve, reject) => {
+        if (typeof fn !== "function")
+               throw new TypeError(fn + " is not a function"));
 
-            if (typeof fn !== "function")
-                return Promise.reject(new TypeError(fn + " is not a function"));
+        return new Promise((resolve, reject) => {
 
             this.subscribe({
 
