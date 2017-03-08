@@ -8,6 +8,10 @@ function getSymbol(name) {
   return hasSymbol(name) ? Symbol[name] : "@@" + name;
 }
 
+// Ponyfill Symbol.observable for interoperability with other libraries
+if (typeof Symbol === "function" && !Symbol.observable) {
+  Symbol.observable = Symbol("observable");
+}
 
 // === Abstract Operations ===
 
