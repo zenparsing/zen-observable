@@ -27,9 +27,15 @@ function getMethod(obj, key) {
   return value;
 }
 
-function getSpecies(ctor) {
-  var symbol = getSymbol("species");
-  return symbol ? ctor[symbol] : ctor;
+function getSpecies(obj) {
+  var ctor = obj.constructor;
+  if (ctor !== undefined) {
+    ctor = ctor[getSymbol("species")];
+    if (ctor === null) {
+      ctor = undefined;
+    }
+  }
+  return ctor !== undefined ? ctor : Observable;
 }
 
 function addMethods(target, methods) {
@@ -262,7 +268,7 @@ addMethods(Observable.prototype, {
     if (typeof fn !== "function")
       throw new TypeError(fn + " is not a function");
 
-    var C = getSpecies(this.constructor);
+    var C = getSpecies(this);
 
     return new C(function(observer) { return __this.subscribe({
       next: function(value) {
@@ -284,7 +290,7 @@ addMethods(Observable.prototype, {
     if (typeof fn !== "function")
       throw new TypeError(fn + " is not a function");
 
-    var C = getSpecies(this.constructor);
+    var C = getSpecies(this);
 
     return new C(function(observer) { return __this.subscribe({
       next: function(value) {
@@ -306,7 +312,7 @@ addMethods(Observable.prototype, {
     if (typeof fn !== "function")
       throw new TypeError(fn + " is not a function");
 
-    var C = getSpecies(this.constructor);
+    var C = getSpecies(this);
     var hasSeed = arguments.length > 1;
     var hasValue = false;
     var seed = arguments[1];
@@ -348,7 +354,7 @@ addMethods(Observable.prototype, {
     if (typeof fn !== "function")
       throw new TypeError(fn + " is not a function");
 
-    var C = getSpecies(this.constructor);
+    var C = getSpecies(this);
 
     return new C(function(observer) {
       var completed = false;
