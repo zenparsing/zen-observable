@@ -6,6 +6,7 @@ import flatMapTests from "./flatMap.js";
 import reduceTests from "./reduce.js";
 import mapTests from "./map.js";
 import filterTests from "./filter.js";
+import speciesTests from "./species.js";
 
 runTests(Observable).then(() => {
   return new TestRunner().inject({ Observable }).run({
@@ -13,5 +14,6 @@ runTests(Observable).then(() => {
     "flatMap": flatMapTests,
     "reduce": reduceTests,
     "filter": filterTests,
+    "species": speciesTests,
   });
 });
