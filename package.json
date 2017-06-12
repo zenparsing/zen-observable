@@ -5,6 +5,7 @@
   "description": "An Implementation of ES Observables",
   "homepage": "https://github.com/zenparsing/zen-observable",
   "license": "MIT",
+  "typings": "src/Observable.d.ts",
   "devDependencies": {
     "es-observable-tests": "^0.3.0",
     "moon-unit": "^0.2.1",
