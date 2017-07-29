@@ -171,14 +171,13 @@ addMethods(SubscriptionObserver.prototype = {}, {
       if (!m)
         throw value;
 
-      value = m.call(observer, value);
+      m.call(observer, value);
     } catch (e) {
       try { cleanupSubscription(subscription) }
       finally { throw e }
     }
 
     cleanupSubscription(subscription);
-    return value;
   },
 
   complete(value) {
