@@ -181,7 +181,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
     return value;
   },
 
-  complete(value) {
+  complete() {
     let subscription = this._subscription;
 
     // If the stream is closed, then return undefined
@@ -195,14 +195,14 @@ addMethods(SubscriptionObserver.prototype = {}, {
       let m = getMethod(observer, "complete");
 
       // If the sink does not support "complete", then return undefined
-      value = m ? m.call(observer, value) : undefined;
+      if (m)
+        m.call(observer, value);
     } catch (e) {
       try { cleanupSubscription(subscription) }
       finally { throw e }
     }
 
     cleanupSubscription(subscription);
-    return value;
   },
 
 });
@@ -282,7 +282,7 @@ addMethods(Observable.prototype, {
       },
 
       error(e) { return observer.error(e) },
-      complete(x) { return observer.complete(x) },
+      complete() { return observer.complete() },
     }));
   },
 

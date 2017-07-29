@@ -181,7 +181,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
     return value;
   },
 
-  complete: function(value) {
+  complete: function() {
     var subscription = this._subscription;
 
     // If the stream is closed, then return undefined
@@ -195,14 +195,14 @@ addMethods(SubscriptionObserver.prototype = {}, {
       var m$1 = getMethod(observer, "complete");
 
       // If the sink does not support "complete", then return undefined
-      value = m$1 ? m$1.call(observer, value) : undefined;
+      if(m$1)
+        m$1.call(observer, value);
     } catch (e) {
       try { cleanupSubscription(subscription) }
       finally { throw e }
     }
 
     cleanupSubscription(subscription);
-    return value;
   },
 
 });
@@ -217,7 +217,7 @@ function Observable(subscriber) {
 
 addMethods(Observable.prototype, {
 
-  subscribe: function(observer) { for (var args = [], __$0 = 1; __$0 < arguments.length; ++__$0) args.push(arguments[__$0]); 
+  subscribe: function(observer) { for (var args = [], __$0 = 1; __$0 < arguments.length; ++__$0) args.push(arguments[__$0]);
     if (typeof observer === 'function') {
       observer = {
         next: observer,
@@ -229,7 +229,7 @@ addMethods(Observable.prototype, {
     return new Subscription(observer, this._subscriber);
   },
 
-  forEach: function(fn) { var __this = this; 
+  forEach: function(fn) { var __this = this;
     return new Promise(function(resolve, reject) {
       if (typeof fn !== "function")
         return Promise.reject(new TypeError(fn + " is not a function"));
@@ -264,7 +264,7 @@ addMethods(Observable.prototype, {
     });
   },
 
-  map: function(fn) { var __this = this; 
+  map: function(fn) { var __this = this;
     if (typeof fn !== "function")
       throw new TypeError(fn + " is not a function");
 
@@ -282,11 +282,11 @@ addMethods(Observable.prototype, {
       },
 
       error: function(e) { return observer.error(e) },
-      complete: function(x) { return observer.complete(x) },
+      complete: function() { return observer.complete() },
     }); });
   },
 
-  filter: function(fn) { var __this = this; 
+  filter: function(fn) { var __this = this;
     if (typeof fn !== "function")
       throw new TypeError(fn + " is not a function");
 
@@ -308,7 +308,7 @@ addMethods(Observable.prototype, {
     }); });
   },
 
-  reduce: function(fn) { var __this = this; 
+  reduce: function(fn) { var __this = this;
     if (typeof fn !== "function")
       throw new TypeError(fn + " is not a function");
 
@@ -350,7 +350,7 @@ addMethods(Observable.prototype, {
     }); });
   },
 
-  flatMap: function(fn) { var __this = this; 
+  flatMap: function(fn) { var __this = this;
     if (typeof fn !== "function")
       throw new TypeError(fn + " is not a function");
 
@@ -446,7 +446,7 @@ addMethods(Observable, {
 
     if (hasSymbol("iterator") && (method = getMethod(x, getSymbol("iterator")))) {
       return new C(function(observer) {
-        for (var __$0 = (method.call(x))[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var item$0 = __$1.value; 
+        for (var __$0 = (method.call(x))[Symbol.iterator](), __$1; __$1 = __$0.next(), !__$1.done;) { var item$0 = __$1.value;
           observer.next(item$0);
           if (observer.closed)
             return;
@@ -471,7 +471,7 @@ addMethods(Observable, {
     throw new TypeError(x + " is not observable");
   },
 
-  of: function() { for (var items = [], __$0 = 0; __$0 < arguments.length; ++__$0) items.push(arguments[__$0]); 
+  of: function() { for (var items = [], __$0 = 0; __$0 < arguments.length; ++__$0) items.push(arguments[__$0]);
     var C = typeof this === "function" ? this : Observable;
 
     return new C(function(observer) {
