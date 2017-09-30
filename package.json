@@ -1,12 +1,10 @@
 {
   "name": "zen-observable",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "repository": "zenparsing/zen-observable",
   "description": "An Implementation of ES Observables",
   "homepage": "https://github.com/zenparsing/zen-observable",
   "license": "MIT",
-  "main": "index.js",
-  "module": "default.js",
   "devDependencies": {
     "es-observable-tests": "^0.3.0",
     "moon-unit": "^0.2.1",
