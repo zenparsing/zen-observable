@@ -1,4 +1,4 @@
-'use strict'; (function(fn, name) { if (typeof exports !== 'undefined') fn(exports, module); else if (typeof self !== 'undefined') fn(name === '*' ? self : (name ? self[name] = {} : {})); })(function(exports, module) { // === Symbol Support ===
+'use strict'; (function(fn, name) { if (typeof exports !== "undefined") { fn(exports, module); } else if (typeof self !== "undefined") { var e = name === "*" ? self : (name ? self[name] = {} : {}); fn(e, { exports: e }); } })(function(exports, module) { // === Symbol Support ===
 
 function hasSymbol(name) {
   return typeof Symbol === "function" && Boolean(Symbol[name]);
@@ -490,6 +490,10 @@ addMethods(Observable, {
 Object.defineProperty(Observable, getSymbol("species"), {
   get: function() { return this },
   configurable: true,
+});
+
+Object.defineProperty(Observable, "observableSymbol", {
+  value: getSymbol("observable"),
 });
 
 exports.Observable = Observable;

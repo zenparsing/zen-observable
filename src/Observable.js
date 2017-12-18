@@ -491,3 +491,7 @@ Object.defineProperty(Observable, getSymbol("species"), {
   get() { return this },
   configurable: true,
 });
+
+Object.defineProperty(Observable, "observableSymbol", {
+  value: getSymbol("observable"),
+});
