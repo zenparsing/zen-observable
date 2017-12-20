@@ -15,6 +15,10 @@ if (typeof Symbol === "function" && !Symbol.observable) {
 
 // === Abstract Operations ===
 
+function hostReportError(e) {
+  setTimeout(() => { throw e });
+}
+
 function getMethod(obj, key) {
   let value = obj[key];
 
@@ -59,7 +63,8 @@ function cleanupSubscription(subscription) {
   subscription._cleanup = undefined;
 
   // Call the cleanup function
-  cleanup();
+  try { cleanup() }
+  catch (e) { hostReportError(e) }
 }
 
 function subscriptionClosed(subscription) {
@@ -88,10 +93,12 @@ function Subscription(observer, subscriber) {
   this._cleanup = undefined;
   this._observer = observer;
 
-  let start = getMethod(observer, "start");
-
-  if (start)
-    start.call(observer, this);
+  try {
+    let start = getMethod(observer, "start");
+    if (start) start.call(observer, this);
+  } catch (e) {
+    hostReportError(e);
+  }
 
   if (subscriptionClosed(this))
     return;
@@ -141,73 +148,68 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
     // If the stream is closed, then return undefined
     if (subscriptionClosed(subscription))
-      return undefined;
+      return;
 
     let observer = subscription._observer;
-    let m = getMethod(observer, "next");
 
-    // If the observer doesn't support "next", then return undefined
-    if (!m)
-      return undefined;
-
-    // Send the next value to the sink
-    return m.call(observer, value);
+    try {
+      // If the observer has a "next" method, send the next value
+      let m = getMethod(observer, "next");
+      if (m) m.call(observer, value);
+    } catch (e) {
+      hostReportError(e);
+    }
   },
 
   error(value) {
     let subscription = this._subscription;
 
     // If the stream is closed, throw the error to the caller
-    if (subscriptionClosed(subscription))
-      throw value;
+    if (subscriptionClosed(subscription)) {
+      hostReportError(value);
+      return;
+    }
 
     let observer = subscription._observer;
     subscription._observer = undefined;
 
     try {
       let m = getMethod(observer, "error");
-
-      // If the sink does not support "error", then throw the error to the caller
-      if (!m)
-        throw value;
-
-      value = m.call(observer, value);
+      if (m) m.call(observer, value);
+      else throw value;
     } catch (e) {
-      try { cleanupSubscription(subscription) }
-      finally { throw e }
+      hostReportError(e);
     }
 
     cleanupSubscription(subscription);
-    return value;
   },
 
-  complete(value) {
+  complete() {
     let subscription = this._subscription;
 
-    // If the stream is closed, then return undefined
     if (subscriptionClosed(subscription))
-      return undefined;
+      return;
 
     let observer = subscription._observer;
     subscription._observer = undefined;
 
     try {
       let m = getMethod(observer, "complete");
-
-      // If the sink does not support "complete", then return undefined
-      value = m ? m.call(observer, value) : undefined;
+      if (m) m.call(observer);
     } catch (e) {
-      try { cleanupSubscription(subscription) }
-      finally { throw e }
+      hostReportError(e);
     }
 
     cleanupSubscription(subscription);
-    return value;
   },
 
 });
 
 export function Observable(subscriber) {
+  // Constructor cannot be called as a function
+  if (!(this instanceof Observable))
+    throw new TypeError("Observable cannot be called as a function");
+
   // The stream subscriber must be a function
   if (typeof subscriber !== "function")
     throw new TypeError("Observable initializer must be a function");
@@ -224,6 +226,8 @@ addMethods(Observable.prototype, {
         error: args[0],
         complete: args[1],
       };
+    } else if (typeof observer !== 'object' || observer === null) {
+      observer = {};
     }
 
     return new Subscription(observer, this._subscriber);
@@ -251,7 +255,7 @@ addMethods(Observable.prototype, {
             return;
 
           try {
-            return fn(value);
+            fn(value);
           } catch (err) {
             reject(err);
             subscription.unsubscribe();
@@ -278,11 +282,11 @@ addMethods(Observable.prototype, {
         try { value = fn(value) }
         catch (e) { return observer.error(e) }
 
-        return observer.next(value);
+        observer.next(value);
       },
 
-      error(e) { return observer.error(e) },
-      complete(x) { return observer.complete(x) },
+      error(e) { observer.error(e) },
+      complete() { observer.complete() },
     }));
   },
 
@@ -297,14 +301,14 @@ addMethods(Observable.prototype, {
         if (observer.closed)
           return;
 
-        try { if (!fn(value)) return undefined }
+        try { if (!fn(value)) return }
         catch (e) { return observer.error(e) }
 
-        return observer.next(value);
+        observer.next(value);
       },
 
-      error(e) { return observer.error(e) },
-      complete() { return observer.complete() },
+      error(e) { observer.error(e) },
+      complete() { observer.complete() },
     }));
   },
 
@@ -339,8 +343,7 @@ addMethods(Observable.prototype, {
 
       complete() {
         if (!hasValue && !hasSeed) {
-          observer.error(new TypeError("Cannot reduce an empty sequence"));
-          return;
+          return observer.error(new TypeError("Cannot reduce an empty sequence"));
         }
 
         observer.next(acc);
@@ -348,70 +351,6 @@ addMethods(Observable.prototype, {
       },
 
     }));
-  },
-
-  flatMap(fn) {
-    if (typeof fn !== "function")
-      throw new TypeError(fn + " is not a function");
-
-    let C = getSpecies(this);
-
-    return new C(observer => {
-      let completed = false;
-      let subscriptions = [];
-
-      // Subscribe to the outer Observable
-      let outer = this.subscribe({
-
-        next(value) {
-          if (fn) {
-            try {
-              value = fn(value);
-            } catch (x) {
-              observer.error(x);
-              return;
-            }
-          }
-
-          // Subscribe to the inner Observable
-          Observable.from(value).subscribe({
-            _subscription: null,
-
-            start(s) { subscriptions.push(this._subscription = s) },
-            next(value) { observer.next(value) },
-            error(e) { observer.error(e) },
-
-            complete() {
-              let i = subscriptions.indexOf(this._subscription);
-
-              if (i >= 0)
-                subscriptions.splice(i, 1);
-
-              closeIfDone();
-            }
-          });
-        },
-
-        error(e) {
-          return observer.error(e);
-        },
-
-        complete() {
-          completed = true;
-          closeIfDone();
-        }
-      });
-
-      function closeIfDone() {
-        if (completed && subscriptions.length === 0)
-          observer.complete();
-      }
-
-      return () => {
-        subscriptions.forEach(s => s.unsubscribe());
-        outer.unsubscribe();
-      };
-    });
   },
 
 });

@@ -1,14 +1,18 @@
 {
   "name": "zen-observable",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "repository": "zenparsing/zen-observable",
   "description": "An Implementation of ES Observables",
   "homepage": "https://github.com/zenparsing/zen-observable",
   "license": "MIT",
   "devDependencies": {
-    "es-observable-tests": "^0.3.0",
-    "moon-unit": "^0.2.1",
-    "v8-promise": "*"
+    "esdown": "^1.2.8",
+    "moon-unit": "^0.2.1"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "scripts": {
+    "test": "esdown test",
+    "build": "esdown - src/Observable.js zen-observable.js -g '*'",
+    "prepublishOnly": "npm run build"
+  }
 }

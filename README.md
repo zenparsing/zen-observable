@@ -180,20 +180,3 @@ Observable.of(0, 1, 2, 3, 4).reduce((previousValue, currentValue) => {
 ```
 
 Returns a new Observable that applies a function against an accumulator and each value of the stream to reduce it to a single value.
-
-
-### observable.flatMap ( callback )
-
-Returns a new Observable that emits the values from each Observable that is returned from the `callback` argument.
-
-```js
-Observable.of("Hello", "Goodbye").flatMap(value => {
-    return Observable.of(value + " Earth", value + " Mars");
-}).subscribe(value => {
-    console.log(value);
-});
-// "Hello Earth"
-// "Hello Mars"
-// "Goodbye Earth"
-// "Goodbye Mars"
-```
