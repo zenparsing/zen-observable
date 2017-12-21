@@ -431,6 +431,9 @@ Object.defineProperty(Observable, getSymbol("species"), {
   configurable: true,
 });
 
-Object.defineProperty(Observable, "observableSymbol", {
-  value: getSymbol("observable"),
+Object.defineProperty(Observable, "extensions", {
+  value: {
+    observableSymbol: getSymbol("observable"),
+    setHostReportError(fn) { hostReportError = fn },
+  },
 });
