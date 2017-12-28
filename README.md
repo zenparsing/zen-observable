@@ -12,7 +12,7 @@ npm install zen-observable
 
 ## Download
 
-- [zen-observable.js](https://raw.githubusercontent.com/zenparsing/zen-observable/master/zen-observable.js)
+- https://unpkg.com/zen-observable/zen-observable.js
 
 ## Usage
 
