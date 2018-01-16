@@ -84,11 +84,8 @@ function cleanupFromSubscription(subscription) {
 }
 
 function Subscription(observer, subscriber) {
+  // Assert: observer is an object
   // Assert: subscriber is callable
-
-  // The observer must be an object
-  if (Object(observer) !== observer)
-    throw new TypeError("Observer must be an object");
 
   this._cleanup = undefined;
   this._observer = observer;
