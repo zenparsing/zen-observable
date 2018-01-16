@@ -55,16 +55,30 @@ function cleanupSubscription(subscription) {
 
   let cleanup = subscription._cleanup;
 
-  if (!cleanup)
+  if (cleanup === undefined)
     return;
 
   // Drop the reference to the cleanup function so that we won't call it
   // more than once
   subscription._cleanup = undefined;
 
+  if (cleanup === null) {
+    return;
+  }
+
   // Call the cleanup function
-  try { cleanup() }
-  catch (e) { hostReportError(e) }
+  try {
+    if (typeof cleanup === 'function') {
+      cleanup();
+    } else {
+      let unsubscribe = getMethod(cleanup, 'unsubscribe');
+      if (unsubscribe) {
+        unsubscribe.call(cleanup);
+      }
+    }
+  } catch (e) {
+    hostReportError(e);
+  }
 }
 
 function subscriptionClosed(subscription) {
@@ -77,10 +91,6 @@ function closeSubscription(subscription) {
 
   subscription._observer = undefined;
   cleanupSubscription(subscription);
-}
-
-function cleanupFromSubscription(subscription) {
-  return () => { subscription.unsubscribe() };
 }
 
 function Subscription(observer, subscriber) {
@@ -104,17 +114,7 @@ function Subscription(observer, subscriber) {
 
   try {
     // Call the subscriber function
-    let cleanup = subscriber.call(undefined, observer);
-
-    // The return value must be undefined, null, a subscription object, or a function
-    if (cleanup != null) {
-      if (typeof cleanup.unsubscribe === "function")
-        cleanup = cleanupFromSubscription(cleanup);
-      else if (typeof cleanup !== "function")
-        throw new TypeError(cleanup + " is not a function");
-
-      this._cleanup = cleanup;
-    }
+    this._cleanup = subscriber.call(undefined, observer);
   } catch (e) {
     // If an error occurs during startup, then attempt to send the error
     // to the observer
