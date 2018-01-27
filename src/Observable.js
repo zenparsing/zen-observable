@@ -15,10 +15,6 @@ if (typeof Symbol === "function" && !Symbol.observable) {
 
 // === Abstract Operations ===
 
-function hostReportError(e) {
-  setTimeout(() => { throw e });
-}
-
 function getMethod(obj, key) {
   let value = obj[key];
 
@@ -67,17 +63,13 @@ function cleanupSubscription(subscription) {
   }
 
   // Call the cleanup function
-  try {
-    if (typeof cleanup === 'function') {
-      cleanup();
-    } else {
-      let unsubscribe = getMethod(cleanup, 'unsubscribe');
-      if (unsubscribe) {
-        unsubscribe.call(cleanup);
-      }
+  if (typeof cleanup === 'function') {
+    cleanup();
+  } else {
+    let unsubscribe = getMethod(cleanup, 'unsubscribe');
+    if (unsubscribe) {
+      unsubscribe.call(cleanup);
     }
-  } catch (e) {
-    hostReportError(e);
   }
 }
 
@@ -100,12 +92,8 @@ function Subscription(observer, subscriber) {
   this._cleanup = undefined;
   this._observer = observer;
 
-  try {
-    let start = getMethod(observer, "start");
-    if (start) start.call(observer, this);
-  } catch (e) {
-    hostReportError(e);
-  }
+  let start = getMethod(observer, "start");
+  if (start) start.call(observer, this);
 
   if (subscriptionClosed(this))
     return;
@@ -149,13 +137,9 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
     let observer = subscription._observer;
 
-    try {
-      // If the observer has a "next" method, send the next value
-      let m = getMethod(observer, "next");
-      if (m) m.call(observer, value);
-    } catch (e) {
-      hostReportError(e);
-    }
+    // If the observer has a "next" method, send the next value
+    let m = getMethod(observer, "next");
+    if (m) m.call(observer, value);
   },
 
   error(value) {
@@ -163,8 +147,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
     // If the stream is closed, throw the error to the caller
     if (subscriptionClosed(subscription)) {
-      hostReportError(value);
-      return;
+      throw value;
     }
 
     let observer = subscription._observer;
@@ -175,7 +158,8 @@ addMethods(SubscriptionObserver.prototype = {}, {
       if (m) m.call(observer, value);
       else throw value;
     } catch (e) {
-      hostReportError(e);
+      try { cleanupSubscription(subscription) }
+      finally { throw e }
     }
 
     cleanupSubscription(subscription);
@@ -194,7 +178,8 @@ addMethods(SubscriptionObserver.prototype = {}, {
       let m = getMethod(observer, "complete");
       if (m) m.call(observer);
     } catch (e) {
-      hostReportError(e);
+      try { cleanupSubscription(subscription) }
+      finally { throw e }
     }
 
     cleanupSubscription(subscription);
@@ -431,6 +416,5 @@ Object.defineProperty(Observable, getSymbol("species"), {
 Object.defineProperty(Observable, "extensions", {
   value: {
     observableSymbol: getSymbol("observable"),
-    setHostReportError(fn) { hostReportError = fn },
   },
 });
