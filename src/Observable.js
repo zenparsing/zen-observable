@@ -46,6 +46,13 @@ function addMethods(target, methods) {
   });
 }
 
+function enqueue(fn) {
+  Promise.resolve().then(() => {
+    try { fn() }
+    catch (err) { setTimeout(() => { throw err }) }
+  });
+}
+
 function cleanupSubscription(subscription) {
   // ASSERT:  observer._observer is undefined
 
@@ -352,25 +359,27 @@ addMethods(Observable, {
 
     if (hasSymbol("iterator") && (method = getMethod(x, getSymbol("iterator")))) {
       return new C(observer => {
-        for (let item of method.call(x)) {
-          observer.next(item);
-          if (observer.closed)
-            return;
-        }
-
-        observer.complete();
+        enqueue(() => {
+          if (observer.closed) return;
+          for (let item of method.call(x)) {
+            observer.next(item);
+            if (observer.closed) return;
+          }
+          observer.complete();
+        });
       });
     }
 
     if (Array.isArray(x)) {
       return new C(observer => {
-        for (let i = 0; i < x.length; ++i) {
-          observer.next(x[i]);
-          if (observer.closed)
-            return;
-        }
-
-        observer.complete();
+        enqueue(() => {
+          if (observer.closed) return;
+          for (let i = 0; i < items.length; ++i) {
+            observer.next(items[i]);
+            if (observer.closed) return;
+          }
+          observer.complete();
+        });
       });
     }
 
@@ -381,13 +390,14 @@ addMethods(Observable, {
     let C = typeof this === "function" ? this : Observable;
 
     return new C(observer => {
-      for (let i = 0; i < items.length; ++i) {
-        observer.next(items[i]);
-        if (observer.closed)
-          return;
-      }
-
-      observer.complete();
+      enqueue(() => {
+        if (observer.closed) return;
+        for (let i = 0; i < items.length; ++i) {
+          observer.next(items[i]);
+          if (observer.closed) return;
+        }
+        observer.complete();
+      });
     });
   },
 
