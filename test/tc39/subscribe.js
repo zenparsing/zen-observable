@@ -11,6 +11,7 @@ export default {
         });
     },
 
+    /*
     "Argument type" (test, { Observable }) {
 
         let x = new Observable(sink => null);
@@ -27,7 +28,9 @@ export default {
         .not().throws(_=> x.subscribe(function() {}))
         ;
     },
+    */
 
+    /*
     "Function arguments" (test, { Observable }) {
 
         let list = [], error = new Error();
@@ -69,6 +72,7 @@ export default {
               }).subscribe(x => list.push("next:" + x)))
           .equals(list, ["next:1"]);
     },
+    */
 
     "Subscriber arguments" (test, { Observable }) {
 

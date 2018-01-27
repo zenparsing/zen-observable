@@ -1,8 +1,8 @@
 # zen-observable
 
-An implementation of [ES Observables](https://github.com/zenparsing/es-observable).
+An implementation of [JS Observables](https://github.com/zenparsing/es-observable).
 
-Requires ES6 Promises or a Promise polyfill.
+Requires Promises or a Promise polyfill.
 
 ## Install
 
@@ -32,7 +32,7 @@ Browser:
 </script>
 ```
 
-ES Modules:
+Modules:
 
 ```js
 import Observable from "zen-observable";
@@ -41,7 +41,7 @@ Observable.of(1, 2, 3).subscribe(x => console.log(x));
 
 ## API
 
-### new Observable ( subscribe )
+### new Observable(subscribe)
 
 ```js
 let observable = new Observable(observer => {
@@ -52,7 +52,7 @@ let observable = new Observable(observer => {
     }, 1000);
 
     // On unsubscription, cancel the timer
-    return _=> clearTimeout(timer);
+    return () => clearTimeout(timer);
 });
 ```
 
@@ -64,7 +64,7 @@ Creates a new Observable object using the specified subscriber function.  The su
 
 The subscriber function can optionally return either a cleanup function or a subscription object.  If it returns a cleanup function, that function will be called when the subscription has closed.  If it returns a subscription object, then the subscription's `unsubscribe` method will be invoked when the subscription has closed.
 
-### Observable.of ( ...items )
+### Observable.of(...items)
 
 ```js
 // Logs 1, 2, 3
@@ -75,7 +75,7 @@ Observable.of(1, 2, 3).subscribe(x => {
 
 Returns an observable which will emit each supplied argument.
 
-### Observable.from ( value )
+### Observable.from(value)
 
 ```js
 let list = [1, 2, 3];
@@ -95,27 +95,27 @@ Observable.from(otherObservable).subscribe(x => {
 
 Converts `value` to an Observable.
 
-- If `value` is an implementation of ES Observables, then it is converted to an instance of Observable as defined by this library.
+- If `value` is an implementation of Observable, then it is converted to an instance of Observable as defined by this library.
 - Otherwise, it is converted to an Observable which synchronously iterates over `value`.
 
-### observable.subscribe ( observer )
+### observable.subscribe([observer])
 
 ```js
 let subscription = observable.subscribe({
     next(x) { console.log(x) },
     error(err) { console.log(`Finished with error: ${ err }`) },
     complete() { console.log("Finished") }
-})
+});
 ```
 
-Subscribes to the observable.  The `observer` argument must be an object.  It may have any of the following methods:
+Subscribes to the observable.  If the `observer` argument is provided, it must be either a function or an object. Observer objects may have any of the following methods:
 
 - `start(subscription)` Receives the subscription object during initialization.
 - `next(value)` Receives the next value of the sequence.
 - `error(exception)` Receives the terminating error of the sequence.
 - `complete()` Called when the stream has completed successfully.
 
-The subscription object can be used to cancel the stream.
+Returns a subscription object that can be used to cancel the stream.
 
 ```js
 // Stop receiving data from the stream
@@ -124,9 +124,9 @@ subscription.unsubscribe();
 
 ## Extended API
 
-*The following methods are not yet defined by the ES Observable specification.*
+*The following methods are not yet defined by the Observable specification.*
 
-### observable.forEach ( callback )
+### observable.forEach(callback)
 
 ```js
 observable.forEach(x => {
@@ -140,7 +140,7 @@ observable.forEach(x => {
 
 Subscribes to the observable and returns a Promise for the completion value of the stream.  The `callback` argument is called once for each value in the stream.
 
-### observable.filter ( callback )
+### observable.filter(callback)
 
 ```js
 Observable.of(1, 2, 3).filter(value => {
@@ -153,7 +153,7 @@ Observable.of(1, 2, 3).filter(value => {
 
 Returns a new Observable that emits all values which pass the test implemented by the `callback` argument.
 
-### observable.map ( callback )
+### observable.map(callback)
 
 Returns a new Observable that emits the results of calling the `callback` argument for every value in the stream.
 
@@ -168,7 +168,7 @@ Observable.of(1, 2, 3).map(value => {
 // 6
 ```
 
-### observable.reduce ( callback [, initialValue] )
+### observable.reduce(callback [,initialValue])
 
 ```js
 Observable.of(0, 1, 2, 3, 4).reduce((previousValue, currentValue) => {

@@ -46,11 +46,17 @@ function addMethods(target, methods) {
   });
 }
 
+function enqueue(fn) {
+  Promise.resolve().then(() => {
+    try { fn() }
+    catch (err) { setTimeout(() => { throw err }) }
+  });
+}
+
 function cleanupSubscription(subscription) {
-  // Assert:  observer._observer is undefined
+  // ASSERT:  observer._observer is undefined
 
   let cleanup = subscription._cleanup;
-
   if (cleanup === undefined)
     return;
 
@@ -63,10 +69,10 @@ function cleanupSubscription(subscription) {
   }
 
   // Call the cleanup function
-  if (typeof cleanup === 'function') {
+  if (typeof cleanup === "function") {
     cleanup();
   } else {
-    let unsubscribe = getMethod(cleanup, 'unsubscribe');
+    let unsubscribe = getMethod(cleanup, "unsubscribe");
     if (unsubscribe) {
       unsubscribe.call(cleanup);
     }
@@ -86,8 +92,8 @@ function closeSubscription(subscription) {
 }
 
 function Subscription(observer, subscriber) {
-  // Assert: observer is an object
-  // Assert: subscriber is callable
+  // ASSERT: observer is an object
+  // ASSERT: subscriber is callable
 
   this._cleanup = undefined;
   this._observer = observer;
@@ -98,17 +104,8 @@ function Subscription(observer, subscriber) {
   if (subscriptionClosed(this))
     return;
 
-  observer = new SubscriptionObserver(this);
-
-  try {
-    // Call the subscriber function
-    this._cleanup = subscriber.call(undefined, observer);
-  } catch (e) {
-    // If an error occurs during startup, then attempt to send the error
-    // to the observer
-    observer.error(e);
-    return;
-  }
+  // Call the subscriber function
+  this._cleanup = subscriber.call(undefined, new SubscriptionObserver(this));
 
   // If the stream is already finished, then perform cleanup
   if (subscriptionClosed(this))
@@ -201,15 +198,13 @@ export function Observable(subscriber) {
 
 addMethods(Observable.prototype, {
 
-  subscribe(observer, ...args) {
-    if (typeof observer === 'function') {
-      observer = {
-        next: observer,
-        error: args[0],
-        complete: args[1],
-      };
-    } else if (typeof observer !== 'object' || observer === null) {
+  subscribe(observer) {
+    if (observer == null) {
       observer = {};
+    } else if (typeof observer === "function") {
+      observer = { next: observer };
+    } else if (typeof observer !== "object") {
+      throw new TypeError(observer + " is not an object");
     }
 
     return new Subscription(observer, this._subscriber);
@@ -224,9 +219,6 @@ addMethods(Observable.prototype, {
         _subscription: null,
 
         start(subscription) {
-          if (Object(subscription) !== subscription)
-            throw new TypeError(subscription + " is not an object");
-
           this._subscription = subscription;
         },
 
@@ -367,25 +359,27 @@ addMethods(Observable, {
 
     if (hasSymbol("iterator") && (method = getMethod(x, getSymbol("iterator")))) {
       return new C(observer => {
-        for (let item of method.call(x)) {
-          observer.next(item);
-          if (observer.closed)
-            return;
-        }
-
-        observer.complete();
+        enqueue(() => {
+          if (observer.closed) return;
+          for (let item of method.call(x)) {
+            observer.next(item);
+            if (observer.closed) return;
+          }
+          observer.complete();
+        });
       });
     }
 
     if (Array.isArray(x)) {
       return new C(observer => {
-        for (let i = 0; i < x.length; ++i) {
-          observer.next(x[i]);
-          if (observer.closed)
-            return;
-        }
-
-        observer.complete();
+        enqueue(() => {
+          if (observer.closed) return;
+          for (let i = 0; i < items.length; ++i) {
+            observer.next(items[i]);
+            if (observer.closed) return;
+          }
+          observer.complete();
+        });
       });
     }
 
@@ -396,13 +390,14 @@ addMethods(Observable, {
     let C = typeof this === "function" ? this : Observable;
 
     return new C(observer => {
-      for (let i = 0; i < items.length; ++i) {
-        observer.next(items[i]);
-        if (observer.closed)
-          return;
-      }
-
-      observer.complete();
+      enqueue(() => {
+        if (observer.closed) return;
+        for (let i = 0; i < items.length; ++i) {
+          observer.next(items[i]);
+          if (observer.closed) return;
+        }
+        observer.complete();
+      });
     });
   },
 
