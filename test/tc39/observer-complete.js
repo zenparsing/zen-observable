@@ -49,6 +49,7 @@ export default {
         });
     },
 
+    /*
     "Thrown error" (test, { Observable }) {
 
         let token = {};
@@ -62,6 +63,7 @@ export default {
             complete() { throw new Error(); }
         });
     },
+    */
 
     "Method lookup" (test, { Observable }) {
 
@@ -80,9 +82,11 @@ export default {
         test._("If property is null, then complete returns undefined")
         .equals(observer.complete(), undefined);
 
+        /*
         observable.subscribe({ complete: {} });
         test._("If property is not a function, then complete returns undefined")
         .equals(observer.complete(), undefined);
+        */
 
         let actual = {};
         let calls = 0;
@@ -153,13 +157,15 @@ export default {
 
         called = 0;
         observable.subscribe({ get complete() { throw new Error() } });
-        observer.complete();
+        try { observer.complete() }
+        catch (x) {}
         test._("Cleanup function is called when method lookup throws")
         .equals(called, 1);
 
         called = 0;
         observable.subscribe({ complete() { throw new Error() } });
-        observer.complete();
+        try { observer.complete() }
+        catch (x) {}
         test._("Cleanup function is called when method throws")
         .equals(called, 1);
     },

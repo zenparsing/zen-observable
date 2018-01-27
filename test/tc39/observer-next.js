@@ -53,6 +53,7 @@ export default {
         });
     },
 
+    /*
     "Thrown error" (test, { Observable }) {
 
         let token = {};
@@ -66,6 +67,7 @@ export default {
             next() { throw new Error(); }
         });
     },
+    */
 
     "Method lookup" (test, { Observable }) {
 
@@ -84,9 +86,11 @@ export default {
         test._("If property is null, then next returns undefined")
         .equals(observer.next(), undefined);
 
+        /*
         observable.subscribe({ next: {} });
         test._("If property is not a function, then next returns undefined")
         .equals(observer.next(), undefined);
+        */
 
         let actual = {};
         let calls = 0;
@@ -130,7 +134,8 @@ export default {
         });
 
         let subscription = observable.subscribe({ next() { throw new Error() } });
-        observer.next()
+        try { observer.next() }
+        catch (e) {}
         test._("Subscription is not closed when next throws an error")
         .equals(subscription.closed, false);
     },

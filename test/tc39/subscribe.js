@@ -99,6 +99,7 @@ export default {
         .not().throws(_=> new Observable(sink => function() {}).subscribe(sink))
         ._("Subscriptions can be returned")
         .not().throws(_=> new Observable(sink => ({ unsubscribe() {} }).subscribe(sink)))
+        /*
         ._("Non callable, non-subscription objects cannot be returned")
         .throws(
             _ => {
@@ -121,7 +122,7 @@ export default {
                 new Observable(sink => false).subscribe({ error(e) { error = e; } });
                 throw error;
             },
-            TypeError);
+            TypeError)*/;
     },
 
     "Returns a subscription object" (test, { Observable }) {
@@ -234,8 +235,10 @@ export default {
         let error = new Error(),
             observable = new Observable(_=> { throw error });
 
+        /*
         test._("Subscribe does not throw if the observer does not handle errors")
         .not().throws(_=> observable.subscribe({}), error);
+        */
 
         let thrown = null;
 

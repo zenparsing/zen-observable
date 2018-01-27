@@ -43,14 +43,19 @@ export default {
             test._("Suppresses the value returned from the observer")
             .equals(observer.error(), undefined);
 
+            test._("Throws when closed")
+            .throws(() => observer.error());
+            /*
             test._("Returns undefined when closed")
             .equals(observer.error(), undefined);
+            */
 
         }).subscribe({
             error() { return token }
         });
     },
 
+    /*
     "Thrown error" (test, { Observable }) {
 
         let token = {};
@@ -64,6 +69,7 @@ export default {
             error() { throw new Error(); }
         });
     },
+    */
 
     "Method lookup" (test, { Observable }) {
 
@@ -71,6 +77,7 @@ export default {
             error = new Error(),
             observable = new Observable(x => { observer = x });
 
+        /*
         observable.subscribe({});
         test._("If property does not exist, then error returns undefined")
         .equals(observer.error(error), undefined);
@@ -86,6 +93,7 @@ export default {
         observable.subscribe({ error: {} });
         test._("If property is not a function, then error returns undefined")
         .equals(observer.error(error), undefined);
+        */
 
         let actual = {};
         let calls = 0;
@@ -157,13 +165,15 @@ export default {
 
         called = 0;
         observable.subscribe({ get error() { throw new Error() } });
-        observer.error()
+        try { observer.error() }
+        catch (x) {}
         test._("Cleanup function is called when method lookup throws")
         .equals(called, 1);
 
         called = 0;
         observable.subscribe({ error() { throw new Error() } });
-        observer.error()
+        try { observer.error() }
+        catch (x) {}
         test._("Cleanup function is called when method throws")
         .equals(called, 1);
     },
