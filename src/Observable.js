@@ -98,18 +98,17 @@ function Subscription(observer, subscriber) {
   this._cleanup = undefined;
   this._observer = observer;
 
-  let start = getMethod(observer, "start");
-  if (start) start.call(observer, this);
-
-  if (subscriptionClosed(this))
-    return;
+  observer = new SubscriptionObserver(this);
 
   // Call the subscriber function
-  this._cleanup = subscriber.call(undefined, new SubscriptionObserver(this));
+  try {
+    this._cleanup = subscriber.call(undefined, observer);
+  } catch (err) {
+    enqueue(() => observer.error(err));
+  }
 
-  // If the stream is already finished, then perform cleanup
-  if (subscriptionClosed(this))
-    cleanupSubscription(this);
+  // Mark observer as initialized
+  observer._initialized = true;
 }
 
 addMethods(Subscription.prototype = {}, {
@@ -119,6 +118,7 @@ addMethods(Subscription.prototype = {}, {
 
 function SubscriptionObserver(subscription) {
   this._subscription = subscription;
+  this._initialized = false;
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
@@ -126,6 +126,9 @@ addMethods(SubscriptionObserver.prototype = {}, {
   get closed() { return subscriptionClosed(this._subscription) },
 
   next(value) {
+    if (!this._initialized)
+      throw new Error("Observer is not initialized");
+
     let subscription = this._subscription;
 
     // If the stream is closed, then return undefined
@@ -140,6 +143,9 @@ addMethods(SubscriptionObserver.prototype = {}, {
   },
 
   error(value) {
+    if (!this._initialized)
+      throw new Error("Observer is not initialized");
+
     let subscription = this._subscription;
 
     // If the stream is closed, throw the error to the caller
@@ -163,6 +169,9 @@ addMethods(SubscriptionObserver.prototype = {}, {
   },
 
   complete() {
+    if (!this._initialized)
+      throw new Error("Observer is not initialized");
+
     let subscription = this._subscription;
 
     if (subscriptionClosed(subscription))
@@ -214,19 +223,8 @@ addMethods(Observable.prototype, {
       if (typeof fn !== "function")
         return Promise.reject(new TypeError(fn + " is not a function"));
 
-      this.subscribe({
-        _subscription: null,
-
-        start(subscription) {
-          this._subscription = subscription;
-        },
-
+      let subscription = this.subscribe({
         next(value) {
-          let subscription = this._subscription;
-
-          if (subscription.closed)
-            return;
-
           try {
             fn(value);
           } catch (err) {
@@ -234,7 +232,6 @@ addMethods(Observable.prototype, {
             subscription.unsubscribe();
           }
         },
-
         error: reject,
         complete: resolve,
       });
@@ -249,15 +246,10 @@ addMethods(Observable.prototype, {
 
     return new C(observer => this.subscribe({
       next(value) {
-        if (observer.closed)
-          return;
-
         try { value = fn(value) }
         catch (e) { return observer.error(e) }
-
         observer.next(value);
       },
-
       error(e) { observer.error(e) },
       complete() { observer.complete() },
     }));
@@ -271,15 +263,10 @@ addMethods(Observable.prototype, {
 
     return new C(observer => this.subscribe({
       next(value) {
-        if (observer.closed)
-          return;
-
         try { if (!fn(value)) return }
         catch (e) { return observer.error(e) }
-
         observer.next(value);
       },
-
       error(e) { observer.error(e) },
       complete() { observer.complete() },
     }));
@@ -298,9 +285,6 @@ addMethods(Observable.prototype, {
     return new C(observer => this.subscribe({
 
       next(value) {
-        if (observer.closed)
-          return;
-
         let first = !hasValue;
         hasValue = true;
 
@@ -315,9 +299,8 @@ addMethods(Observable.prototype, {
       error(e) { observer.error(e) },
 
       complete() {
-        if (!hasValue && !hasSeed) {
+        if (!hasValue && !hasSeed)
           return observer.error(new TypeError("Cannot reduce an empty sequence"));
-        }
 
         observer.next(acc);
         observer.complete();
