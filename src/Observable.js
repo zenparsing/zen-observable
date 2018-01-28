@@ -54,7 +54,7 @@ function enqueue(fn) {
 }
 
 function cleanupSubscription(subscription) {
-  // ASSERT:  observer._observer is undefined
+  // ASSERT: observer._observer is undefined
 
   let cleanup = subscription._cleanup;
   if (cleanup === undefined)
@@ -64,7 +64,7 @@ function cleanupSubscription(subscription) {
   // more than once
   subscription._cleanup = undefined;
 
-  if (cleanup === null) {
+  if (!cleanup) {
     return;
   }
 
