@@ -108,7 +108,7 @@ function Subscription(observer, subscriber) {
   }
 
   // Mark observer as initialized
-  observer._initialized = true;
+  observer._state = "ready";
 }
 
 addMethods(Subscription.prototype = {}, {
@@ -118,7 +118,7 @@ addMethods(Subscription.prototype = {}, {
 
 function SubscriptionObserver(subscription) {
   this._subscription = subscription;
-  this._initialized = false;
+  this._state = "uninitialized";
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
@@ -126,14 +126,14 @@ addMethods(SubscriptionObserver.prototype = {}, {
   get closed() { return subscriptionClosed(this._subscription) },
 
   next(value) {
-    if (!this._initialized)
-      throw new Error("Observer is not initialized");
-
     let subscription = this._subscription;
 
     // If the stream is closed, then return undefined
     if (subscriptionClosed(subscription))
       return;
+
+    if (this._state !== "ready")
+      throw new Error("Observer is not ready");
 
     let observer = subscription._observer;
 
@@ -143,15 +143,15 @@ addMethods(SubscriptionObserver.prototype = {}, {
   },
 
   error(value) {
-    if (!this._initialized)
-      throw new Error("Observer is not initialized");
-
     let subscription = this._subscription;
 
     // If the stream is closed, throw the error to the caller
     if (subscriptionClosed(subscription)) {
       throw value;
     }
+
+    if (this._state !== "ready")
+      throw new Error("Observer is not ready");
 
     let observer = subscription._observer;
     subscription._observer = undefined;
@@ -169,13 +169,13 @@ addMethods(SubscriptionObserver.prototype = {}, {
   },
 
   complete() {
-    if (!this._initialized)
-      throw new Error("Observer is not initialized");
-
     let subscription = this._subscription;
 
     if (subscriptionClosed(subscription))
       return;
+
+    if (this._state !== "ready")
+      throw new Error("Observer is not ready");
 
     let observer = subscription._observer;
     subscription._observer = undefined;
