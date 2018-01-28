@@ -61,6 +61,7 @@ Creates a new Observable object using the specified subscriber function.  The su
 - `next(value)` Sends the next value in the sequence.
 - `error(exception)` Terminates the sequence with an exception.
 - `complete()` Terminates the sequence successfully.
+- `closed` A boolean property whose value is `true` if the observer's subscription is still open.
 
 The subscriber function can optionally return either a cleanup function or a subscription object.  If it returns a cleanup function, that function will be called when the subscription has closed.  If it returns a subscription object, then the subscription's `unsubscribe` method will be invoked when the subscription has closed.
 
@@ -108,9 +109,8 @@ let subscription = observable.subscribe({
 });
 ```
 
-Subscribes to the observable.  If the `observer` argument is provided, it must be either a function or an object. Observer objects may have any of the following methods:
+Subscribes to the observable.  Observer objects may have any of the following methods:
 
-- `start(subscription)` Receives the subscription object during initialization.
 - `next(value)` Receives the next value of the sequence.
 - `error(exception)` Receives the terminating error of the sequence.
 - `complete()` Called when the stream has completed successfully.
@@ -121,10 +121,6 @@ Returns a subscription object that can be used to cancel the stream.
 // Stop receiving data from the stream
 subscription.unsubscribe();
 ```
-
-## Extended API
-
-*The following methods are not yet defined by the Observable specification.*
 
 ### observable.forEach(callback)
 
