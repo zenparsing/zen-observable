@@ -30,7 +30,6 @@ export default {
     },
     */
 
-    /*
     "Function arguments" (test, { Observable }) {
 
         let list = [], error = new Error();
@@ -72,7 +71,6 @@ export default {
               }).subscribe(x => list.push("next:" + x)))
           .equals(list, ["next:1"]);
     },
-    */
 
     "Subscriber arguments" (test, { Observable }) {
 

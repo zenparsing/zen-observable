@@ -199,14 +199,13 @@ export function Observable(subscriber) {
 addMethods(Observable.prototype, {
 
   subscribe(observer) {
-    if (observer == null) {
-      observer = {};
-    } else if (typeof observer === "function") {
-      observer = { next: observer };
-    } else if (typeof observer !== "object") {
-      throw new TypeError(observer + " is not an object");
+    if (!observer || typeof observer !== 'object') {
+      observer = {
+        next: observer,
+        error: arguments[1],
+        complete: arguments[2]
+      };
     }
-
     return new Subscription(observer, this._subscriber);
   },
 
