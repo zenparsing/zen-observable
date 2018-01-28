@@ -27,7 +27,7 @@ Browser:
 ```html
 <script src="zen-observable.js"></script>
 <script>
-    Observable.of(1, 2, 3).subscribe(x => console.log(x));
+  Observable.of(1, 2, 3).subscribe(x => console.log(x));
 </script>
 ```
 
@@ -45,14 +45,14 @@ Observable.of(1, 2, 3).subscribe(x => console.log(x));
 
 ```js
 let observable = new Observable(observer => {
-    // Emit a single value after 1 second
-    let timer = setTimeout(() => {
-        observer.next("hello");
-        observer.complete();
-    }, 1000);
+  // Emit a single value after 1 second
+  let timer = setTimeout(() => {
+    observer.next("hello");
+    observer.complete();
+  }, 1000);
 
-    // On unsubscription, cancel the timer
-    return () => clearTimeout(timer);
+  // On unsubscription, cancel the timer
+  return () => clearTimeout(timer);
 });
 ```
 
@@ -70,7 +70,7 @@ The subscriber function can optionally return either a cleanup function or a sub
 ```js
 // Logs 1, 2, 3
 Observable.of(1, 2, 3).subscribe(x => {
-    console.log(x);
+  console.log(x);
 });
 ```
 
@@ -83,14 +83,14 @@ let list = [1, 2, 3];
 
 // Iterate over an object
 Observable.from(list).subscribe(x => {
-    console.log(x);
+  console.log(x);
 });
 ```
 
 ```js
 // Convert something "observable" to an Observable instance
 Observable.from(otherObservable).subscribe(x => {
-    console.log(x);
+  console.log(x);
 });
 ```
 
@@ -103,9 +103,9 @@ Converts `value` to an Observable.
 
 ```js
 let subscription = observable.subscribe({
-    next(x) { console.log(x) },
-    error(err) { console.log(`Finished with error: ${ err }`) },
-    complete() { console.log("Finished") }
+  next(x) { console.log(x) },
+  error(err) { console.log(`Finished with error: ${ err }`) },
+  complete() { console.log("Finished") }
 });
 ```
 
@@ -126,11 +126,11 @@ subscription.unsubscribe();
 
 ```js
 observable.forEach(x => {
-    console.log(`Received value: ${ x }`);
+  console.log(`Received value: ${ x }`);
 }).then(() => {
-    console.log("Finished successfully")
+  console.log("Finished successfully")
 }).catch(err => {
-    console.log(`Finished with error: ${ err }`);
+  console.log(`Finished with error: ${ err }`);
 })
 ```
 
@@ -140,9 +140,9 @@ Subscribes to the observable and returns a Promise for the completion value of t
 
 ```js
 Observable.of(1, 2, 3).filter(value => {
-    return value > 2;
+  return value > 2;
 }).subscribe(value => {
-    console.log(value);
+  console.log(value);
 });
 // 3
 ```
@@ -155,9 +155,9 @@ Returns a new Observable that emits the results of calling the `callback` argume
 
 ```js
 Observable.of(1, 2, 3).map(value => {
-    return value * 2;
+  return value * 2;
 }).subscribe(value => {
-    console.log(value);
+  console.log(value);
 });
 // 2
 // 4
@@ -168,9 +168,9 @@ Observable.of(1, 2, 3).map(value => {
 
 ```js
 Observable.of(0, 1, 2, 3, 4).reduce((previousValue, currentValue) => {
-    return previousValue + currentValue;
+  return previousValue + currentValue;
 }).subscribe(result => {
-    console.log(result);
+  console.log(result);
 });
 // 10
 ```
