@@ -1,8 +1,6 @@
 # zen-observable
 
-An implementation of [JS Observables](https://github.com/zenparsing/es-observable).
-
-Requires Promises or a Promise polyfill.
+An implementation of Observables for Javascript. Requires Promises or a Promise polyfill.
 
 ## Install
 
@@ -12,7 +10,7 @@ npm install zen-observable
 
 ## Download
 
-- https://unpkg.com/zen-observable/zen-observable.js
+https://unpkg.com/zen-observable/zen-observable.js
 
 ## Usage
 
@@ -20,6 +18,7 @@ Node:
 
 ```js
 var Observable = require("zen-observable");
+
 Observable.of(1, 2, 3).subscribe(x => console.log(x));
 ```
 
@@ -36,6 +35,7 @@ Modules:
 
 ```js
 import Observable from "zen-observable";
+
 Observable.of(1, 2, 3).subscribe(x => console.log(x));
 ```
 
@@ -46,7 +46,7 @@ Observable.of(1, 2, 3).subscribe(x => console.log(x));
 ```js
 let observable = new Observable(observer => {
     // Emit a single value after 1 second
-    let timer = setTimeout(_=> {
+    let timer = setTimeout(() => {
         observer.next("hello");
         observer.complete();
     }, 1000);
@@ -131,7 +131,7 @@ subscription.unsubscribe();
 ```js
 observable.forEach(x => {
     console.log(`Received value: ${ x }`);
-}).then(_=> {
+}).then(() => {
     console.log("Finished successfully")
 }).catch(err => {
     console.log(`Finished with error: ${ err }`);
