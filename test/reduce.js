@@ -1,44 +1,39 @@
-export default {
+const Observable = require('../src/Observable');
+const assert = require('assert');
 
-  "No seed" (test, { Observable }) {
-    return Observable.from([1, 2, 3, 4, 5, 6]).reduce((a, b) => {
+describe('reduce', () => {
+  it('reduces without a seed', async () => {
+    await Observable.from([1, 2, 3, 4, 5, 6]).reduce((a, b) => {
       return a + b;
     }).forEach(x => {
-      test.equals(x, 21);
+      assert.equal(x, 21);
     });
-  },
+  });
 
-  "No seed - one value" (test, { Observable }) {
-    return Observable.from([1]).reduce((a, b) => {
-      return a + b;
-    }).forEach(x => {
-      test.equals(x, 1);
-    });
-  },
+  it('errors if empty and no seed', async () => {
+    try {
+      await Observable.from([]).reduce((a, b) => {
+        return a + b;
+      }).forEach(() => null);
+      assert.ok(false);
+    } catch (err) {
+      assert.ok(true);
+    }
+  });
 
-  "No seed - empty (throws)" (test, { Observable }) {
-    return Observable.from([]).reduce((a, b) => {
-      return a + b;
-    }).forEach(() => null)
-    .then(
-      () => test.assert(false),
-      () => test.assert(true));
-  },
-
-  "Seed" (test, { Observable }) {
-    return Observable.from([1, 2, 3, 4, 5, 6]).reduce((a, b) => {
+  it('reduces with a seed', async () => {
+    Observable.from([1, 2, 3, 4, 5, 6]).reduce((a, b) => {
       return a + b;
     }, 100).forEach(x => {
-      test.equals(x, 121);
+      assert.equal(x, 121);
     });
-  },
+  });
 
-  "Seed - empty" (test, { Observable }) {
-    return Observable.from([]).reduce((a, b) => {
+  it('reduces an empty list with a seed', async () => {
+    await Observable.from([]).reduce((a, b) => {
       return a + b;
     }, 100).forEach(x => {
-      test.equals(x, 100);
+      assert.equal(x, 100);
     });
-  },
-
-};
+  });
+});

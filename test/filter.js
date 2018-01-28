@@ -1,13 +1,15 @@
-export default {
+const Observable = require('../src/Observable');
+const assert = require('assert');
 
-  "Basics" (test, { Observable }) {
-
+describe('filter', () => {
+  it('filters the results using the supplied callback', async () => {
     let list = [];
 
-    return Observable.from([1, 2, 3, 4])
+    await Observable
+      .from([1, 2, 3, 4])
       .filter(x => x > 2)
-      .forEach(x => list.push(x))
-      .then(() => test.equals(list, [3, 4]));
-  },
+      .forEach(x => list.push(x));
 
-};
+    assert.deepEqual(list, [3, 4]);
+  });
+});

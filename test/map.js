@@ -1,12 +1,14 @@
-export default {
+const Observable = require('../src/Observable');
+const assert = require('assert');
 
-  "Basics" (test, { Observable }) {
+describe('map', () => {
+  it('maps the results using the supplied callback', async () => {
     let list = [];
 
-    return Observable.from([1, 2, 3])
+    await Observable.from([1, 2, 3])
       .map(x => x * 2)
-      .forEach(x => list.push(x))
-      .then(() => test.equals(list, [2, 4, 6]));
-  },
+      .forEach(x => list.push(x));
 
-};
+    assert.deepEqual(list, [2, 4, 6]);
+  });
+});

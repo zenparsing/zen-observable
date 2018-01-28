@@ -7,12 +7,15 @@
   "license": "MIT",
   "devDependencies": {
     "esdown": "^1.2.8",
+    "eslint": "^4.16.0",
+    "mocha": "^5.0.0",
     "moon-unit": "^0.2.1"
   },
   "dependencies": {},
   "scripts": {
-    "test": "esdown test",
+    "test": "mocha",
+    "lint": "eslint src/*",
     "build": "esdown - src/Observable.js zen-observable.js -g '*'",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "eslint src/* && mocha && npm run build"
   }
 }

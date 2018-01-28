@@ -2,7 +2,8 @@ module.exports = {
   "extends": ["eslint:recommended"],
 
   "env": {
-    "es6": true
+    "es6": true,
+    "node": true
   },
 
   "globals": {
@@ -10,7 +11,7 @@ module.exports = {
   },
 
   "parserOptions": {
-    "sourceType": "module"
+    "sourceType": "script"
   },
 
   "rules": {
@@ -33,7 +34,7 @@ module.exports = {
     "space-before-function-paren": ["error", "never"],
     "space-in-parens": ["error", "never"],
     "eol-last": ["error"],
-    "quotes": ["error", "double", { "avoidEscape": true }],
+    "quotes": ["error", "single", { "avoidEscape": true }],
     "no-implicit-globals": ["error"],
     "no-useless-concat": ["error"],
     "space-infix-ops": ["error", { "int32Hint": true }],

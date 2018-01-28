@@ -1,28 +1,29 @@
-export default {
+const Observable = require('../src/Observable');
+const assert = require('assert');
 
-  "uses Observable when constructor is undefined" (test, { Observable }) {
+describe('species', () => {
+  it('uses Observable when constructor is undefined', () => {
     let instance = new Observable(() => {});
     instance.constructor = undefined;
-    test.equals(instance.map(x => x) instanceof Observable, true);
-  },
+    assert.ok(instance.map(x => x) instanceof Observable);
+  });
 
-  "uses Observable if species is null" (test, { Observable }) {
+  it('uses Observable if species is null', () => {
     let instance = new Observable(() => {});
     instance.constructor = { [Symbol.species]: null };
-    test.equals(instance.map(x => x) instanceof Observable, true);
-  },
+    assert.ok(instance.map(x => x) instanceof Observable);
+  });
 
-  "uses Observable if species is undefined" (test, { Observable }) {
+  it('uses Observable if species is undefined', () => {
     let instance = new Observable(() => {});
     instance.constructor = { [Symbol.species]: undefined };
-    test.equals(instance.map(x => x) instanceof Observable, true);
-  },
+    assert.ok(instance.map(x => x) instanceof Observable);
+  });
 
-  "uses value of Symbol.species" (test, { Observable }) {
+  it('uses value of Symbol.species', () => {
     function ctor() {}
     let instance = new Observable(() => {});
     instance.constructor = { [Symbol.species]: ctor };
-    test.equals(instance.map(x => x) instanceof ctor, true);
-  },
-
-};
+    assert.ok(instance.map(x => x) instanceof ctor);
+  });
+});
