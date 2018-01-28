@@ -60,15 +60,12 @@ function cleanupSubscription(subscription) {
   if (cleanup === undefined)
     return;
 
-  // Drop the reference to the cleanup function so that we won't call it
-  // more than once
   subscription._cleanup = undefined;
 
   if (!cleanup) {
     return;
   }
 
-  // Call the cleanup function
   if (typeof cleanup === "function") {
     cleanup();
   } else {
@@ -80,15 +77,21 @@ function cleanupSubscription(subscription) {
 }
 
 function subscriptionClosed(subscription) {
-  return subscription._observer === undefined;
+  return subscription._state === "closed";
 }
 
 function closeSubscription(subscription) {
-  if (subscriptionClosed(subscription))
-    return;
-
   subscription._observer = undefined;
-  cleanupSubscription(subscription);
+  subscription._state = "closed";
+}
+
+function validateSubscriptionReady(subscription) {
+  // ASSERT: subscription._state !== "closed"
+  switch (subscription._state) {
+    case "ready": break;
+    case "uninitialized": throw new Error("Subscription is not initialized");
+    case "running": throw new Error("Subscription observer is already running");
+  }
 }
 
 function Subscription(observer, subscriber) {
@@ -97,28 +100,30 @@ function Subscription(observer, subscriber) {
 
   this._cleanup = undefined;
   this._observer = observer;
+  this._state = "initializing";
 
-  observer = new SubscriptionObserver(this);
+  let subscriptionObserver = new SubscriptionObserver(this);
 
-  // Call the subscriber function
   try {
-    this._cleanup = subscriber.call(undefined, observer);
+    this._cleanup = subscriber.call(undefined, subscriptionObserver);
   } catch (err) {
     enqueue(() => observer.error(err));
   }
 
-  // Mark observer as initialized
-  observer._state = "ready";
+  this._state = "ready";
 }
 
 addMethods(Subscription.prototype = {}, {
-  get closed() { return subscriptionClosed(this) },
-  unsubscribe() { closeSubscription(this) },
+  unsubscribe() {
+    if (!subscriptionClosed(this)) {
+      closeSubscription(this);
+      cleanupSubscription(this);
+    }
+  },
 });
 
 function SubscriptionObserver(subscription) {
   this._subscription = subscription;
-  this._state = "uninitialized";
 }
 
 addMethods(SubscriptionObserver.prototype = {}, {
@@ -127,34 +132,35 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
   next(value) {
     let subscription = this._subscription;
-
-    // If the stream is closed, then return undefined
     if (subscriptionClosed(subscription))
       return;
 
-    if (this._state !== "ready")
-      throw new Error("Observer is not ready");
+    validateSubscriptionReady(subscription);
 
     let observer = subscription._observer;
-
-    // If the observer has a "next" method, send the next value
     let m = getMethod(observer, "next");
-    if (m) m.call(observer, value);
+    if (!m) return;
+
+    subscription._state = "running";
+
+    try {
+      m.call(observer, value);
+    } finally {
+      if (!subscriptionClosed(subscription))
+        subscription._state = "ready";
+    }
   },
 
   error(value) {
     let subscription = this._subscription;
-
-    // If the stream is closed, throw the error to the caller
     if (subscriptionClosed(subscription)) {
       throw value;
     }
 
-    if (this._state !== "ready")
-      throw new Error("Observer is not ready");
+    validateSubscriptionReady(subscription);
 
     let observer = subscription._observer;
-    subscription._observer = undefined;
+    closeSubscription(subscription);
 
     try {
       let m = getMethod(observer, "error");
@@ -170,15 +176,13 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
   complete() {
     let subscription = this._subscription;
-
     if (subscriptionClosed(subscription))
       return;
 
-    if (this._state !== "ready")
-      throw new Error("Observer is not ready");
+    validateSubscriptionReady(subscription);
 
     let observer = subscription._observer;
-    subscription._observer = undefined;
+    closeSubscription(subscription);
 
     try {
       let m = getMethod(observer, "complete");
@@ -194,11 +198,9 @@ addMethods(SubscriptionObserver.prototype = {}, {
 });
 
 export function Observable(subscriber) {
-  // Constructor cannot be called as a function
   if (!(this instanceof Observable))
     throw new TypeError("Observable cannot be called as a function");
 
-  // The stream subscriber must be a function
   if (typeof subscriber !== "function")
     throw new TypeError("Observable initializer must be a function");
 
@@ -208,11 +210,11 @@ export function Observable(subscriber) {
 addMethods(Observable.prototype, {
 
   subscribe(observer) {
-    if (!observer || typeof observer !== 'object') {
+    if (!observer || typeof observer !== "object") {
       observer = {
         next: observer,
         error: arguments[1],
-        complete: arguments[2]
+        complete: arguments[2],
       };
     }
     return new Subscription(observer, this._subscriber);
@@ -263,7 +265,7 @@ addMethods(Observable.prototype, {
 
     return new C(observer => this.subscribe({
       next(value) {
-        try { if (!fn(value)) return }
+        try { if (!fn(value)) return; }
         catch (e) { return observer.error(e) }
         observer.next(value);
       },
@@ -356,8 +358,8 @@ addMethods(Observable, {
       return new C(observer => {
         enqueue(() => {
           if (observer.closed) return;
-          for (let i = 0; i < items.length; ++i) {
-            observer.next(items[i]);
+          for (let i = 0; i < x.length; ++i) {
+            observer.next(x[i]);
             if (observer.closed) return;
           }
           observer.complete();
