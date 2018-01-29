@@ -17,7 +17,7 @@ https://unpkg.com/zen-observable/zen-observable.js
 Node:
 
 ```js
-var Observable = require("zen-observable");
+var Observable = require('zen-observable');
 
 Observable.of(1, 2, 3).subscribe(x => console.log(x));
 ```
@@ -25,7 +25,7 @@ Observable.of(1, 2, 3).subscribe(x => console.log(x));
 Browser:
 
 ```html
-<script src="zen-observable.js"></script>
+<script src='zen-observable.js'></script>
 <script>
   Observable.of(1, 2, 3).subscribe(x => console.log(x));
 </script>
@@ -34,7 +34,7 @@ Browser:
 Modules:
 
 ```js
-import Observable from "zen-observable";
+import Observable from 'zen-observable';
 
 Observable.of(1, 2, 3).subscribe(x => console.log(x));
 ```
@@ -47,7 +47,7 @@ Observable.of(1, 2, 3).subscribe(x => console.log(x));
 let observable = new Observable(observer => {
   // Emit a single value after 1 second
   let timer = setTimeout(() => {
-    observer.next("hello");
+    observer.next('hello');
     observer.complete();
   }, 1000);
 
@@ -88,7 +88,7 @@ Observable.from(list).subscribe(x => {
 ```
 
 ```js
-// Convert something "observable" to an Observable instance
+// Convert something 'observable' to an Observable instance
 Observable.from(otherObservable).subscribe(x => {
   console.log(x);
 });
@@ -105,7 +105,7 @@ Converts `value` to an Observable.
 let subscription = observable.subscribe({
   next(x) { console.log(x) },
   error(err) { console.log(`Finished with error: ${ err }`) },
-  complete() { console.log("Finished") }
+  complete() { console.log('Finished') }
 });
 ```
 
@@ -117,10 +117,17 @@ Subscribes to the observable.  Observer objects may have any of the following me
 
 Returns a subscription object that can be used to cancel the stream.
 
+### observable.subscribe(nextCallback[, errorCallback, completeCallback])
+
 ```js
-// Stop receiving data from the stream
-subscription.unsubscribe();
+let subscription = observable.subscribe(
+  x => console.log(x),
+  err => console.log(`Finished with error: ${ err }`),
+  () => console.log('Finished')
+);
 ```
+
+Subscribes to the observable with callback functions. Returns a subscription object that can be used to cancel the stream.
 
 ### observable.forEach(callback)
 
@@ -128,7 +135,7 @@ subscription.unsubscribe();
 observable.forEach(x => {
   console.log(`Received value: ${ x }`);
 }).then(() => {
-  console.log("Finished successfully")
+  console.log('Finished successfully')
 }).catch(err => {
   console.log(`Finished with error: ${ err }`);
 })
