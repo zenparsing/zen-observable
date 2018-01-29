@@ -84,7 +84,7 @@ function validateSubscription(subscription) {
   // ASSERT: subscription._state !== 'closed'
   switch (subscription._state) {
     case 'ready': break;
-    case 'uninitialized': throw new Error('Subscription is not initialized');
+    case 'initializing': throw new Error('Subscription is not initialized');
     case 'running': throw new Error('Subscription observer is already running');
   }
 }
