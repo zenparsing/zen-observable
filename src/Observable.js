@@ -308,6 +308,12 @@ addMethods(Observable.prototype, {
 
 });
 
+Object.defineProperty(Observable.prototype, getSymbol('observable'), {
+  value: function() { return this },
+  writable: true,
+  configurable: true,
+});
+
 addMethods(Observable, {
 
   from(x) {
@@ -316,12 +322,17 @@ addMethods(Observable, {
     if (x == null)
       throw new TypeError(x + ' is not an object');
 
-    if (x.constructor === C) // SPEC: Check for internal slots
-      return x;
-
-    let method = getMethod(x, 'subscribe');
+    let method = getMethod(x, getSymbol('observable'));
     if (method) {
-      return new C(observer => method.call(x, observer));
+      let observable = method.call(x);
+
+      if (Object(observable) !== observable)
+        throw new TypeError(observable + ' is not an object');
+
+      if (observable.constructor === C) // SPEC: Brand check?
+        return observable;
+
+      return new C(observer => observable.subscribe(observer));
     }
 
     if (hasSymbol('iterator')) {
