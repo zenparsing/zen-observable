@@ -61,7 +61,7 @@ Creates a new Observable object using the specified subscriber function.  The su
 - `next(value)` Sends the next value in the sequence.
 - `error(exception)` Terminates the sequence with an exception.
 - `complete()` Terminates the sequence successfully.
-- `closed` A boolean property whose value is `true` if the observer's subscription is still open.
+- `closed` A boolean property whose value is `true` if the observer's subscription is closed.
 
 The subscriber function can optionally return either a cleanup function or a subscription object.  If it returns a cleanup function, that function will be called when the subscription has closed.  If it returns a subscription object, then the subscription's `unsubscribe` method will be invoked when the subscription has closed.
 
