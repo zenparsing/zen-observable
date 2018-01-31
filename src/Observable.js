@@ -102,7 +102,7 @@ function Subscription(observer, subscriber) {
   try {
     this._cleanup = subscriber.call(undefined, subscriptionObserver);
   } catch (err) {
-    enqueue(() => observer.error(err));
+    enqueue(() => subscriptionObserver.error(err));
   }
 
   this._state = 'ready';
