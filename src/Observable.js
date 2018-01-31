@@ -205,7 +205,7 @@ function Observable(subscriber) {
 addMethods(Observable.prototype, {
 
   subscribe(observer) {
-    if (!observer || typeof observer !== 'object') {
+    if (typeof observer !== 'object' || observer === null) {
       observer = {
         next: observer,
         error: arguments[1],
@@ -217,8 +217,10 @@ addMethods(Observable.prototype, {
 
   forEach(fn) {
     return new Promise((resolve, reject) => {
-      if (typeof fn !== 'function')
-        return Promise.reject(new TypeError(fn + ' is not a function'));
+      if (typeof fn !== 'function') {
+        reject(new TypeError(fn + ' is not a function'));
+        return;
+      }
 
       let subscription = this.subscribe({
         next(value) {

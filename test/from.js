@@ -1,5 +1,6 @@
 const Observable = require('../src/Observable');
 const assert = require('assert');
+const { testMethodProperty } = require('./properties');
 
 describe('from', () => {
   const observableSymbol = Symbol.observable || '@@observable';
@@ -11,6 +12,14 @@ describe('from', () => {
       yield 3;
     },
   };
+
+  it('is a method on Observable', () => {
+    testMethodProperty(Observable, 'from', {
+      configurable: true,
+      writable: true,
+      length: 1,
+    });
+  });
 
   it('throws if the argument is null', () => {
     assert.throws(() => Observable.from(null));
