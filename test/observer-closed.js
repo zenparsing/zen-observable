@@ -20,18 +20,16 @@ describe('observer.closed', () => {
     }).subscribe();
   });
 
-  it('returns true when the subscription is completed', async () => {
+  it('returns true when the subscription is completed', () => {
     let observer;
     new Observable(x => { observer = x; }).subscribe();
-    await null;
     observer.complete();
     assert.equal(observer.closed, true);
   });
 
-  it('returns true when the subscription is errored', async () => {
+  it('returns true when the subscription is errored', () => {
     let observer;
     new Observable(x => { observer = x; }).subscribe(null, () => {});
-    await null;
     observer.error();
     assert.equal(observer.closed, true);
   });

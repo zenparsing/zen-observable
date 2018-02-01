@@ -1,7 +1,7 @@
 const Observable = require('../src/Observable');
 const assert = require('assert');
 
-describe.only('forEach', () => {
+describe('forEach', () => {
 
   it('rejects if the argument is not a function', async () => {
     let promise = Observable.of(1, 2, 3).forEach();
