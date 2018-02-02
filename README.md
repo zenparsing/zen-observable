@@ -183,3 +183,17 @@ Observable.of(0, 1, 2, 3, 4).reduce((previousValue, currentValue) => {
 ```
 
 Returns a new Observable that applies a function against an accumulator and each value of the stream to reduce it to a single value.
+
+### observable.concat(...sources)
+
+```js
+Observable.of(1, 2, 3).concat(
+  Observable.of(4, 5, 6),
+  Observable.of(7, 8, 9)
+).subscribe(result => {
+  console.log(result);
+});
+// 1, 2, 3, 4, 5, 6, 7, 8, 9
+```
+
+Merges the current observable with additional observables.
