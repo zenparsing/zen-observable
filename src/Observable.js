@@ -308,6 +308,38 @@ addMethods(Observable.prototype, {
     }));
   },
 
+  concat(...sources) {
+    let C = getSpecies(this);
+
+    return new C(observer => {
+      let subscription;
+
+      function startNext(next) {
+        subscription = next.subscribe({
+          next(v) { observer.next(v) },
+          error(e) { observer.error(e) },
+          complete() {
+            if (sources.length === 0) {
+              subscription = undefined;
+              observer.complete();
+            } else {
+              startNext(C.from(sources.shift()));
+            }
+          },
+        });
+      }
+
+      startNext(this);
+
+      return () => {
+        if (subscription) {
+          subscription = undefined;
+          subscription.unsubscribe();
+        }
+      };
+    });
+  },
+
 });
 
 Object.defineProperty(Observable.prototype, getSymbol('observable'), {
