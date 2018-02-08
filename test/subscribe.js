@@ -122,6 +122,11 @@ describe('subscribe', () => {
       writable: true,
       length: 0,
     });
+    testMethodProperty(Object.getPrototypeOf(subscription), 'closed', {
+      configurable: true,
+      writable: true,
+      get: true,
+    })
   });
 
   it('accepts a cleanup function from the subscriber function', () => {

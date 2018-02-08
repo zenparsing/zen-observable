@@ -113,6 +113,7 @@ function Subscription(observer, subscriber) {
 }
 
 addMethods(Subscription.prototype = {}, {
+  get closed() { return subscriptionClosed(this) },
   unsubscribe() {
     if (!subscriptionClosed(this)) {
       closeSubscription(this);
