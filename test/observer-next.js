@@ -71,46 +71,48 @@ describe('observer.next', () => {
   it('throws if the observer is running', () => {
     let observer;
     new Observable(x => { observer = x }).subscribe({
-      next() { observer.next() },
+      next() {
+        try {
+          observer.next();
+          assert.ok(false);
+        } catch (e) {
+          assert.ok(true);
+        }
+      },
       error() {},
     });
-    assert.throws(() => observer.next());
+    observer.next();
   });
 
-  it('throws if "next" is not a method', () => {
+  it('reports error if "next" is not a method', () => {
     let observer = getObserver({ next: 1 });
-    assert.throws(() => observer.next());
+    observer.next();
+    assert.ok(hostError);
   });
 
-  it('does not throw if "next" is undefined', () => {
+  it('does not report error if "next" is undefined', () => {
     let observer = getObserver({ next: undefined });
-    assert.ok(true);
+    observer.next();
+    assert.ok(!hostError);
   });
 
-  it('does not throw if "next" is null', () => {
+  it('does not report error if "next" is null', () => {
     let observer = getObserver({ next: null });
-    assert.ok(true);
+    observer.next();
+    assert.ok(!hostError);
   });
 
-  it('throws if "next" throws', () => {
+  it('reports error if "next" throws', () => {
     let error = {};
     let observer = getObserver({ next() { throw error } });
-    try {
-      observer.next();
-      assert.ok(false);
-    } catch (err) {
-      assert.equal(err, error);
-    }
+    observer.next();
+    assert.equal(hostError, error);
   });
 
   it('does not close the subscription on error', () => {
     let observer = getObserver({ next() { throw {} } });
-    try {
-      observer.next();
-      assert.ok(false);
-    } catch (err) {
-      assert.equal(observer.closed, false);
-    }
+    observer.next();
+    assert.equal(observer.closed, false);
   });
 
 });

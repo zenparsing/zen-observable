@@ -31,19 +31,19 @@ describe('observer.error', () => {
     assert.equal(observer.error(), undefined);
   });
 
-  it('throws when the subscription is complete', () => {
+  it('does not throw when the subscription is complete', () => {
     let observer = getObserver({ error() {} });
     observer.complete();
-    assert.throws(() => observer.error(1));
+    observer.error('error');
   });
 
-  it('throws when the subscription is cancelled', () => {
+  it('does not throw when the subscription is cancelled', () => {
     let observer;
     let subscription = new Observable(x => { observer = x }).subscribe({
       error() {},
     });
     subscription.unsubscribe();
-    assert.throws(() => observer.error(1));
+    observer.error(1);
   });
 
   it('throws if the subscription is not initialized', async () => {
@@ -58,10 +58,17 @@ describe('observer.error', () => {
   it('throws if the observer is running', () => {
     let observer;
     new Observable(x => { observer = x }).subscribe({
-      next() { observer.error() },
+      next() {
+        try {
+          observer.error();
+          assert.ok(false);
+        } catch (e) {
+          assert.ok(true);
+        }
+      },
       error() {},
     });
-    assert.throws(() => observer.next());
+    observer.next();
   });
 
   it('closes the subscription before invoking inner observer', () => {
@@ -73,42 +80,31 @@ describe('observer.error', () => {
     assert.equal(closed, true);
   });
 
-  it('throws if "error" is not a method', () => {
+  it('reports an error if "error" is not a method', () => {
     let observer = getObserver({ error: 1 });
-    assert.throws(() => observer.error(1));
+    observer.error(1);
+    assert.ok(hostError);
   });
 
-  it('throws if "error" is undefined', () => {
+  it('reports an error if "error" is undefined', () => {
     let error = {};
     let observer = getObserver({ error: undefined });
-    try {
-      observer.error(error);
-      assert.ok(false);
-    } catch (e) {
-      assert.equal(e, error);
-    }
+    observer.error(error);
+    assert.equal(hostError, error);
   });
 
-  it('throws if "error" is null', () => {
+  it('reports an error if "error" is null', () => {
     let error = {};
     let observer = getObserver({ error: null });
-    try {
-      observer.error(error);
-      assert.ok(false);
-    } catch (e) {
-      assert.equal(e, error);
-    }
+    observer.error(error);
+    assert.equal(hostError, error);
   });
 
-  it('throws if "error" throws', () => {
+  it('reports error if "error" throws', () => {
     let error = {};
     let observer = getObserver({ error() { throw error } });
-    try {
-      observer.error(1);
-      assert.ok(false);
-    } catch (err) {
-      assert.equal(err, error);
-    }
+    observer.error(1);
+    assert.equal(hostError, error);
   });
 
   it('calls the cleanup method after "error"', () => {
@@ -152,20 +148,4 @@ describe('observer.error', () => {
     }
   });
 
-  it('throws the error from the observer if both throw', () => {
-    let observerError = {};
-    let observer;
-    new Observable(x => {
-      observer = x;
-      return () => { throw {} };
-    }).subscribe({
-      error() { throw observerError },
-    });
-    try {
-      observer.error(1);
-      assert.ok(false);
-    } catch (err) {
-      assert.equal(err, observerError);
-    }
-  });
 });

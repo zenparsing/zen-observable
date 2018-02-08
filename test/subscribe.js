@@ -115,20 +115,6 @@ describe('subscribe', () => {
     assert.equal(errorValue, undefined);
   });
 
-  it('returns a subscription object', () => {
-    let subscription = new Observable(() => {}).subscribe();
-    testMethodProperty(Object.getPrototypeOf(subscription), 'unsubscribe', {
-      configurable: true,
-      writable: true,
-      length: 0,
-    });
-    testMethodProperty(Object.getPrototypeOf(subscription), 'closed', {
-      configurable: true,
-      writable: true,
-      get: true,
-    })
-  });
-
   it('accepts a cleanup function from the subscriber function', () => {
     let cleanupCalled = false;
     let subscription = new Observable(() => {
