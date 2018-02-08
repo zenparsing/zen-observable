@@ -33,6 +33,10 @@ function getSpecies(obj) {
   return ctor !== undefined ? ctor : Observable;
 }
 
+function isObservable(x) {
+  return x instanceof Observable;
+}
+
 function addMethods(target, methods) {
   Object.keys(methods).forEach(k => {
     let desc = Object.getOwnPropertyDescriptor(methods, k);
@@ -363,7 +367,7 @@ addMethods(Observable, {
       if (Object(observable) !== observable)
         throw new TypeError(observable + ' is not an object');
 
-      if (observable.constructor === C) // SPEC: Brand check?
+      if (isObservable(observable) && observable.constructor === C)
         return observable;
 
       return new C(observer => observable.subscribe(observer));

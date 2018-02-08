@@ -41,6 +41,14 @@ describe('from', () => {
       assert.equal(Observable.from.call(ctor, observable), observable);
     });
 
+    it('wraps the input if it is not an instance of Observable', () => {
+      let obj = {
+        'constructor': Observable,
+        [observableSymbol]() { return this },
+      };
+      assert.ok(Observable.from(obj) !== obj);
+    });
+
     it('throws if @@observable property is not a method', () => {
       assert.throws(() => Observable.from({
         [observableSymbol]: 1
