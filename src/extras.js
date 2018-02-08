@@ -1,5 +1,6 @@
 let Observable = require('./Observable');
 
+// Emits all values from all inputs in parallel
 const merge = (...sources) => new Observable(observer => {
   let count = sources.length;
 
@@ -12,6 +13,7 @@ const merge = (...sources) => new Observable(observer => {
   return () => subscriptions.forEach(s => s.unsubscribe());
 });
 
+// Emits arrays containing the most current values from each input
 const combineLatest = (...sources) => new Observable(observer => {
   let count = sources.length;
   let values = new Map();
@@ -29,6 +31,7 @@ const combineLatest = (...sources) => new Observable(observer => {
   return () => subscriptions.forEach(s => s.unsubscribe());
 });
 
+// Emits arrays containing the matching index values from each input
 const zip = (...sources) => new Observable(observer => {
   let queues = sources.map(() => []);
 
