@@ -16,6 +16,6 @@
     "test": "mocha --require babel-core/register",
     "lint": "eslint src/*",
     "build": "git clean -dfX ./lib && babel src --out-dir lib",
-    "prepublishOnly": "eslint src/* && mocha && npm run build"
+    "prepublishOnly": "eslint src/* && npm test && npm run build"
   }
 }
