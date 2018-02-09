@@ -1,1 +1,1 @@
-module.exports = require('./lib/Observable.js');
+module.exports = require('./lib/Observable.js').Observable;

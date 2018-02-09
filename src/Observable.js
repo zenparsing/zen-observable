@@ -202,7 +202,7 @@ class SubscriptionObserver {
 
 }
 
-export default class Observable {
+export class Observable {
 
   constructor(subscriber) {
     if (!(this instanceof Observable))
@@ -423,8 +423,11 @@ export default class Observable {
 }
 
 if (hasSymbols()) {
-  Observable[Symbol('extensions')] = {
-    symbol: getSymbol('observable'),
-    hostReportError,
-  };
+  Object.defineProperty(Observable, Symbol('extensions'), {
+    value: {
+      symbol: getSymbol('observable'),
+      hostReportError,
+    },
+    configurabe: true,
+  });
 }
