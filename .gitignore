@@ -1,4 +1,4 @@
 .DS_Store
 _*
 node_modules
-zen-observable.js
+lib

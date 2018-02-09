@@ -1,21 +1,21 @@
 {
   "name": "zen-observable",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "repository": "zenparsing/zen-observable",
   "description": "An Implementation of ES Observables",
   "homepage": "https://github.com/zenparsing/zen-observable",
   "license": "MIT",
   "devDependencies": {
-    "esdown": "^1.2.8",
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
     "eslint": "^4.16.0",
-    "mocha": "^5.0.0",
-    "moon-unit": "^0.2.1"
+    "mocha": "^5.0.0"
   },
   "dependencies": {},
   "scripts": {
-    "test": "mocha",
+    "test": "mocha --require babel-core/register",
     "lint": "eslint src/*",
-    "build": "esdown - src/Observable.js zen-observable.js -g '*'",
+    "build": "git clean -dfX ./lib && babel src --out-dir lib",
     "prepublishOnly": "eslint src/* && mocha && npm run build"
   }
 }

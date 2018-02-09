@@ -37,14 +37,6 @@ function isObservable(x) {
   return x instanceof Observable; // SPEC: Brand check
 }
 
-function addMethods(target, methods) {
-  Object.keys(methods).forEach(k => {
-    let desc = Object.getOwnPropertyDescriptor(methods, k);
-    desc.enumerable = false;
-    Object.defineProperty(target, k, desc);
-  });
-}
-
 function hostReportError(e) {
   if (hostReportError.log) {
     hostReportError.log(e);
@@ -101,29 +93,30 @@ function validateSubscription(subscription) {
   }
 }
 
-function Subscription(observer, subscriber) {
-  // ASSERT: observer is an object
-  // ASSERT: subscriber is callable
+class Subscription {
 
-  this._cleanup = undefined;
-  this._observer = observer;
-  this._state = 'initializing';
+  constructor(observer, subscriber) {
+    // ASSERT: observer is an object
+    // ASSERT: subscriber is callable
 
-  let subscriptionObserver = new SubscriptionObserver(this);
+    this._cleanup = undefined;
+    this._observer = observer;
+    this._state = 'initializing';
 
-  try {
-    this._cleanup = subscriber.call(undefined, subscriptionObserver);
-  } catch (e) {
-    enqueue(() => subscriptionObserver.error(e));
+    let subscriptionObserver = new SubscriptionObserver(this);
+
+    try {
+      this._cleanup = subscriber.call(undefined, subscriptionObserver);
+    } catch (e) {
+      enqueue(() => subscriptionObserver.error(e));
+    }
+
+    this._state = 'ready';
   }
 
-  this._state = 'ready';
-}
-
-addMethods(Subscription.prototype = {}, {
   get closed() {
     return subscriptionClosed(this);
-  },
+  }
 
   unsubscribe() {
     if (!subscriptionClosed(this)) {
@@ -131,18 +124,18 @@ addMethods(Subscription.prototype = {}, {
       try { cleanupSubscription(this) }
       catch (e) { hostReportError(e) }
     }
-  },
-});
-
-function SubscriptionObserver(subscription) {
-  this._subscription = subscription;
+  }
 }
 
-addMethods(SubscriptionObserver.prototype = {}, {
+class SubscriptionObserver {
+
+  constructor(subscription) {
+    this._subscription = subscription;
+  }
 
   get closed() {
     return subscriptionClosed(this._subscription);
-  },
+  }
 
   next(value) {
     let subscription = this._subscription;
@@ -163,7 +156,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
 
     if (!subscriptionClosed(subscription))
       subscription._state = 'ready';
-  },
+  }
 
   error(value) {
     let subscription = this._subscription;
@@ -185,7 +178,7 @@ addMethods(SubscriptionObserver.prototype = {}, {
     }
 
     cleanupSubscription(subscription);
-  },
+  }
 
   complete() {
     let subscription = this._subscription;
@@ -205,21 +198,21 @@ addMethods(SubscriptionObserver.prototype = {}, {
     }
 
     cleanupSubscription(subscription);
-  },
+  }
 
-});
-
-function Observable(subscriber) {
-  if (!(this instanceof Observable))
-    throw new TypeError('Observable cannot be called as a function');
-
-  if (typeof subscriber !== 'function')
-    throw new TypeError('Observable initializer must be a function');
-
-  this._subscriber = subscriber;
 }
 
-addMethods(Observable.prototype, {
+export default class Observable {
+
+  constructor(subscriber) {
+    if (!(this instanceof Observable))
+      throw new TypeError('Observable cannot be called as a function');
+
+    if (typeof subscriber !== 'function')
+      throw new TypeError('Observable initializer must be a function');
+
+    this._subscriber = subscriber;
+  }
 
   subscribe(observer) {
     if (typeof observer !== 'object' || observer === null) {
@@ -230,7 +223,7 @@ addMethods(Observable.prototype, {
       };
     }
     return new Subscription(observer, this._subscriber);
-  },
+  }
 
   forEach(fn) {
     return new Promise((resolve, reject) => {
@@ -252,7 +245,7 @@ addMethods(Observable.prototype, {
         complete: resolve,
       });
     });
-  },
+  }
 
   map(fn) {
     if (typeof fn !== 'function')
@@ -269,7 +262,7 @@ addMethods(Observable.prototype, {
       error(e) { observer.error(e) },
       complete() { observer.complete() },
     }));
-  },
+  }
 
   filter(fn) {
     if (typeof fn !== 'function')
@@ -286,7 +279,7 @@ addMethods(Observable.prototype, {
       error(e) { observer.error(e) },
       complete() { observer.complete() },
     }));
-  },
+  }
 
   reduce(fn) {
     if (typeof fn !== 'function')
@@ -323,7 +316,7 @@ addMethods(Observable.prototype, {
       },
 
     }));
-  },
+  }
 
   concat(...sources) {
     let C = getSpecies(this);
@@ -355,19 +348,11 @@ addMethods(Observable.prototype, {
         }
       };
     });
-  },
+  }
 
-});
+  [getSymbol('observable')]() { return this }
 
-Object.defineProperty(Observable.prototype, getSymbol('observable'), {
-  value: function() { return this },
-  writable: true,
-  configurable: true,
-});
-
-addMethods(Observable, {
-
-  from(x) {
+  static from(x) {
     let C = typeof this === 'function' ? this : Observable;
 
     if (x == null)
@@ -416,9 +401,9 @@ addMethods(Observable, {
     }
 
     throw new TypeError(x + ' is not observable');
-  },
+  }
 
-  of(...items) {
+  static of(...items) {
     let C = typeof this === 'function' ? this : Observable;
 
     return new C(observer => {
@@ -431,20 +416,15 @@ addMethods(Observable, {
         observer.complete();
       });
     });
-  },
+  }
 
-});
+  static get [getSymbol('species')]() { return this }
 
-Object.defineProperty(Observable, getSymbol('species'), {
-  get() { return this },
-  configurable: true,
-});
-
-if (hasSymbols()) {
-  Object.defineProperty(Observable, Symbol('extensions'), {
-    value: { symbol: getSymbol('observable'), hostReportError },
-    configurable: true,
-  });
 }
 
-module.exports = Observable;
+if (hasSymbols()) {
+  Observable[Symbol('extensions')] = {
+    symbol: getSymbol('observable'),
+    hostReportError,
+  };
+}

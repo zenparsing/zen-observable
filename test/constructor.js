@@ -1,6 +1,6 @@
-const Observable = require('../src/Observable');
-const assert = require('assert');
-const { testMethodProperty } = require('./properties');
+import Observable from '../src/Observable.js';
+import assert from 'assert';
+import { testMethodProperty } from './properties.js';
 
 describe('constructor', () => {
   it('throws if called as a function', () => {

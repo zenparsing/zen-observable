@@ -1,6 +1,6 @@
-const Observable = require('../src/Observable');
-const assert = require('assert');
-const { testMethodProperty } = require('./properties');
+import Observable from '../src/Observable.js';
+import assert from 'assert';
+import { testMethodProperty } from './properties.js';
 
 describe('observer.complete', () => {
 
@@ -107,6 +107,7 @@ describe('observer.complete', () => {
 
   it('calls the cleanup method after "complete"', () => {
     let calls = [];
+    let observer;
     new Observable(x => {
       observer = x;
       return () => { calls.push('cleanup') };
@@ -119,6 +120,7 @@ describe('observer.complete', () => {
 
   it('calls the cleanup method if there is no "complete"', () => {
     let calls = [];
+    let observer;
     new Observable(x => {
       observer = x;
       return () => { calls.push('cleanup') };

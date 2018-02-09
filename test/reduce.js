@@ -1,5 +1,5 @@
-const Observable = require('../src/Observable');
-const assert = require('assert');
+import Observable from '../src/Observable.js';
+import assert from 'assert';
 
 describe('reduce', () => {
   it('reduces without a seed', async () => {

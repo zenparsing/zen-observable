@@ -1,8 +1,6 @@
-const assert = require('assert');
+import assert from 'assert';
 
-module.exports = { testMethodProperty };
-
-function testMethodProperty(object, key, options) {
+export function testMethodProperty(object, key, options) {
   let desc = Object.getOwnPropertyDescriptor(object, key);
   let { enumerable = false, configurable = false, writable = false, length } = options;
 

@@ -1,4 +1,4 @@
-const Observable = require('../src/Observable');
+import Observable from '../src/Observable.js';
 
 beforeEach(() => {
   global.hostError = null;

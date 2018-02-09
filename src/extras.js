@@ -1,51 +1,64 @@
-let Observable = require('./Observable');
+import Observable from './Observable.js';
 
 // Emits all values from all inputs in parallel
-const merge = (...sources) => new Observable(observer => {
-  let count = sources.length;
+export function merge(...sources) {
+  return new Observable(observer => {
+    if (sources.length === 0)
+      return Observable.from([]);
 
-  let subscriptions = sources.map(source => source.subscribe({
-    next(v) { observer.next(v) },
-    error(e) { observer.error(e) },
-    complete() { if (--count === 0) observer.complete(); },
-  }));
+    let count = sources.length;
 
-  return () => subscriptions.forEach(s => s.unsubscribe());
-});
+    let subscriptions = sources.map(source => Observable.from(source).subscribe({
+      next(v) { observer.next(v) },
+      error(e) { observer.error(e) },
+      complete() { if (--count === 0) observer.complete(); },
+    }));
+
+    return () => subscriptions.forEach(s => s.unsubscribe());
+  });
+}
 
 // Emits arrays containing the most current values from each input
-const combineLatest = (...sources) => new Observable(observer => {
-  let count = sources.length;
-  let values = new Map();
+export function combineLatest(...sources) {
+  return new Observable(observer => {
+    if (sources.length === 0)
+      return Observable.from([]);
 
-  let subscriptions = sources.map((source, index) => source.subscribe({
-    next(v) {
-      values.set(index, v);
-      if (values.size === sources.length)
-        observer.next(Array.from(values.values()));
-    },
-    error(e) { observer.error(e) },
-    complete() { if (--count === 0) observer.complete(); },
-  }));
+    let count = sources.length;
+    let values = new Map();
 
-  return () => subscriptions.forEach(s => s.unsubscribe());
-});
+    let subscriptions = sources.map((source, index) => Observable.from(source).subscribe({
+      next(v) {
+        values.set(index, v);
+        if (values.size === sources.length)
+          observer.next(Array.from(values.values()));
+      },
+      error(e) { observer.error(e) },
+      complete() { if (--count === 0) observer.complete(); },
+    }));
+
+    return () => subscriptions.forEach(s => s.unsubscribe());
+  });
+}
 
 // Emits arrays containing the matching index values from each input
-const zip = (...sources) => new Observable(observer => {
-  let queues = sources.map(() => []);
+export function zip(...sources) {
+  return new Observable(observer => {
+    if (sources.length === 0)
+      return Observable.from([]);
 
-  let subscriptions = sources.map((source, index) => source.subscribe({
-    next(v) {
-      queues[index].push(v);
-      if (queues.every(q => q.length > 0))
-        observer.next(queues.map(q => q.shift()));
-    },
-    error(e) { observer.error(e) },
-    complete() { observer.complete() },
-  }));
+    let queues = sources.map(() => []);
 
-  return () => subscriptions.forEach(s => s.unsubscribe());
-});
+    let subscriptions = sources.map((source, index) => Observable.from(source).subscribe({
+      next(v) {
+        queues[index].push(v);
+        if (queues.every(q => q.length > 0))
+          observer.next(queues.map(q => q.shift()));
+      },
+      error(e) { observer.error(e) },
+      complete() { observer.complete() },
+    }));
 
-module.exports = { merge, combineLatest, zip };
+    return () => subscriptions.forEach(s => s.unsubscribe());
+  });
+}

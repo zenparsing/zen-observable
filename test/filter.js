@@ -1,5 +1,5 @@
-const Observable = require('../src/Observable');
-const assert = require('assert');
+import Observable from '../src/Observable.js';
+import assert from 'assert';
 
 describe('filter', () => {
   it('filters the results using the supplied callback', async () => {

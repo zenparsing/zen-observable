@@ -8,30 +8,7 @@ An implementation of Observables for Javascript. Requires Promises or a Promise 
 npm install zen-observable
 ```
 
-## Download
-
-https://unpkg.com/zen-observable/zen-observable.js
-
 ## Usage
-
-Node:
-
-```js
-var Observable = require('zen-observable');
-
-Observable.of(1, 2, 3).subscribe(x => console.log(x));
-```
-
-Browser:
-
-```html
-<script src='zen-observable.js'></script>
-<script>
-  Observable.of(1, 2, 3).subscribe(x => console.log(x));
-</script>
-```
-
-Modules:
 
 ```js
 import Observable from 'zen-observable';
