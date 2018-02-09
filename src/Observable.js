@@ -232,10 +232,15 @@ export class Observable {
         return;
       }
 
+      function done() {
+        subscription.unsubscribe();
+        resolve();
+      }
+
       let subscription = this.subscribe({
         next(value) {
           try {
-            fn(value);
+            fn(value, done);
           } catch (e) {
             reject(e);
             subscription.unsubscribe();
