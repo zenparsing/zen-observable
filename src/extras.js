@@ -1,4 +1,4 @@
-import Observable from './Observable.js';
+import { Observable } from './Observable.js';
 
 // Emits all values from all inputs in parallel
 export function merge(...sources) {
@@ -9,9 +9,16 @@ export function merge(...sources) {
     let count = sources.length;
 
     let subscriptions = sources.map(source => Observable.from(source).subscribe({
-      next(v) { observer.next(v) },
-      error(e) { observer.error(e) },
-      complete() { if (--count === 0) observer.complete(); },
+      next(v) {
+        observer.next(v);
+      },
+      error(e) {
+        observer.error(e);
+      },
+      complete() {
+        if (--count === 0)
+          observer.complete();
+      },
     }));
 
     return () => subscriptions.forEach(s => s.unsubscribe());
@@ -33,8 +40,13 @@ export function combineLatest(...sources) {
         if (values.size === sources.length)
           observer.next(Array.from(values.values()));
       },
-      error(e) { observer.error(e) },
-      complete() { if (--count === 0) observer.complete(); },
+      error(e) {
+        observer.error(e);
+      },
+      complete() {
+        if (--count === 0)
+          observer.complete();
+      },
     }));
 
     return () => subscriptions.forEach(s => s.unsubscribe());
@@ -49,14 +61,26 @@ export function zip(...sources) {
 
     let queues = sources.map(() => []);
 
+    function done() {
+      return queues.some((q, i) => q.length === 0 && subscriptions[i].closed);
+    }
+
     let subscriptions = sources.map((source, index) => Observable.from(source).subscribe({
       next(v) {
         queues[index].push(v);
-        if (queues.every(q => q.length > 0))
+        if (queues.every(q => q.length > 0)) {
           observer.next(queues.map(q => q.shift()));
+          if (done())
+            observer.complete();
+        }
       },
-      error(e) { observer.error(e) },
-      complete() { observer.complete() },
+      error(e) {
+        observer.error(e);
+      },
+      complete() {
+        if (done())
+          observer.complete();
+      },
     }));
 
     return () => subscriptions.forEach(s => s.unsubscribe());

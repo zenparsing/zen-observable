@@ -1,10 +1,7 @@
-import { Observable } from '../src/Observable.js';
 import assert from 'assert';
 import { testMethodProperty } from './properties.js';
 
 describe('from', () => {
-  const observableSymbol = Symbol.observable || '@@observable';
-
   const iterable = {
     *[Symbol.iterator]() {
       yield 1;
@@ -44,14 +41,14 @@ describe('from', () => {
     it('wraps the input if it is not an instance of Observable', () => {
       let obj = {
         'constructor': Observable,
-        [observableSymbol]() { return this },
+        [Symbol.observable]() { return this },
       };
       assert.ok(Observable.from(obj) !== obj);
     });
 
     it('throws if @@observable property is not a method', () => {
       assert.throws(() => Observable.from({
-        [observableSymbol]: 1
+        [Symbol.observable]: 1
       }));
     });
 
@@ -65,7 +62,7 @@ describe('from', () => {
       let observer;
       let cleanupCalled = true;
       let observable = Observable.from({
-        [observableSymbol]() { return inner },
+        [Symbol.observable]() { return inner },
       });
       observable.subscribe();
       assert.equal(typeof observer.next, 'function');

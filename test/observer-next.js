@@ -1,4 +1,3 @@
-import { Observable } from '../src/Observable.js';
 import assert from 'assert';
 import { testMethodProperty } from './properties.js';
 
