@@ -53,8 +53,6 @@ function enqueue(fn) {
 }
 
 function cleanupSubscription(subscription) {
-  // ASSERT: subscription._observer is undefined
-
   let cleanup = subscription._cleanup;
   if (cleanup === undefined)
     return;
@@ -65,32 +63,71 @@ function cleanupSubscription(subscription) {
     return;
   }
 
-  if (typeof cleanup === 'function') {
-    cleanup();
-  } else {
-    let unsubscribe = getMethod(cleanup, 'unsubscribe');
-    if (unsubscribe) {
-      unsubscribe.call(cleanup);
+  try {
+    if (typeof cleanup === 'function') {
+      cleanup();
+    } else {
+      let unsubscribe = getMethod(cleanup, 'unsubscribe');
+      if (unsubscribe) {
+        unsubscribe.call(cleanup);
+      }
     }
+  } catch (e) {
+    hostReportError(e);
   }
-}
-
-function subscriptionClosed(subscription) {
-  return subscription._state === 'closed';
 }
 
 function closeSubscription(subscription) {
   subscription._observer = undefined;
+  subscription._queue = undefined;
   subscription._state = 'closed';
 }
 
-function validateSubscription(subscription) {
-  // ASSERT: subscription._state !== 'closed'
-  switch (subscription._state) {
-    case 'ready': break;
-    case 'initializing': throw new Error('Subscription is not initialized');
-    case 'running': throw new Error('Subscription observer is already running');
+function flushSubscription(subscription) {
+  let queue = subscription._queue;
+  subscription._queue = undefined;
+  for (let i = 0; i < queue.length; ++i) {
+    notifySubscription(subscription, queue[i].type, queue[i].value);
   }
+}
+
+function notifySubscription(subscription, type, value) {
+  if (subscription._state === 'closed')
+    return;
+
+  if (subscription._state !== 'ready') {
+    if (!subscription._queue) {
+      enqueue(() => flushSubscription(subscription));
+      subscription._queue = [];
+    }
+    subscription._queue.push({ type, value });
+    return;
+  }
+
+  let observer = subscription._observer;
+
+  try {
+    let m = getMethod(observer, type);
+    switch (type) {
+      case 'next':
+        if (m) m.call(observer, value);
+        break;
+      case 'error':
+        closeSubscription(subscription);
+        if (m) m.call(observer, value);
+        else throw value;
+        break;
+      case 'complete':
+        closeSubscription(subscription);
+        if (m) m.call(observer);
+        break;
+    }
+  } catch (e) {
+    hostReportError(e);
+  }
+
+  if (subscription._state === 'closed')
+    cleanupSubscription(subscription);
 }
 
 class Subscription {
@@ -101,6 +138,7 @@ class Subscription {
 
     this._cleanup = undefined;
     this._observer = observer;
+    this._queue = undefined;
     this._state = 'initializing';
 
     let subscriptionObserver = new SubscriptionObserver(this);
@@ -108,98 +146,30 @@ class Subscription {
     try {
       this._cleanup = subscriber.call(undefined, subscriptionObserver);
     } catch (e) {
-      enqueue(() => subscriptionObserver.error(e));
+      subscriptionObserver.error(e);
     }
 
     this._state = 'ready';
   }
 
   get closed() {
-    return subscriptionClosed(this);
+    return this._state === 'closed';
   }
 
   unsubscribe() {
-    if (!subscriptionClosed(this)) {
+    if (this._state !== 'closed') {
       closeSubscription(this);
-      try { cleanupSubscription(this) }
-      catch (e) { hostReportError(e) }
+      cleanupSubscription(this);
     }
   }
 }
 
 class SubscriptionObserver {
-
-  constructor(subscription) {
-    this._subscription = subscription;
-  }
-
-  get closed() {
-    return subscriptionClosed(this._subscription);
-  }
-
-  next(value) {
-    let subscription = this._subscription;
-    if (subscriptionClosed(subscription))
-      return;
-
-    validateSubscription(subscription);
-
-    let observer = subscription._observer;
-    subscription._state = 'running';
-
-    try {
-      let m = getMethod(observer, 'next');
-      if (m) m.call(observer, value);
-    } catch (e) {
-      hostReportError(e);
-    }
-
-    if (!subscriptionClosed(subscription))
-      subscription._state = 'ready';
-  }
-
-  error(value) {
-    let subscription = this._subscription;
-    if (subscriptionClosed(subscription)) {
-      return;
-    }
-
-    validateSubscription(subscription);
-
-    let observer = subscription._observer;
-    closeSubscription(subscription);
-
-    try {
-      let m = getMethod(observer, 'error');
-      if (m) m.call(observer, value);
-      else throw value;
-    } catch (e) {
-      hostReportError(e);
-    }
-
-    cleanupSubscription(subscription);
-  }
-
-  complete() {
-    let subscription = this._subscription;
-    if (subscriptionClosed(subscription))
-      return;
-
-    validateSubscription(subscription);
-
-    let observer = subscription._observer;
-    closeSubscription(subscription);
-
-    try {
-      let m = getMethod(observer, 'complete');
-      if (m) m.call(observer);
-    } catch (e) {
-      hostReportError(e);
-    }
-
-    cleanupSubscription(subscription);
-  }
-
+  constructor(subscription) { this._subscription = subscription }
+  get closed() { return this._subscription._state === 'closed' }
+  next(value) { notifySubscription(this._subscription, 'next', value) }
+  error(value) { notifySubscription(this._subscription, 'error', value) }
+  complete() { notifySubscription(this._subscription, 'complete') }
 }
 
 export class Observable {

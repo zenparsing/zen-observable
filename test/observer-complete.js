@@ -49,25 +49,25 @@ describe('observer.complete', () => {
     assert.equal(count, 0);
   });
 
-  it('throws if the subscription is not initialized', async () => {
-    new Observable(x => {
-      try {
-        x.complete();
-        assert.ok(false);
-      } catch (e) {
-        assert.ok(true);
-      }
-    }).subscribe();
+  it('queues if the subscription is not initialized', async () => {
+    let completed = false;
+    new Observable(x => { x.complete() }).subscribe({
+      complete() { completed = true },
+    });
+    assert.equal(completed, false);
+    await null;
+    assert.equal(completed, true);
   });
 
-  it('throws if the observer is running', () => {
+  it('does not queue if the observer is running', () => {
     let observer;
+    let completed = false
     new Observable(x => { observer = x }).subscribe({
-      next() {
-        assert.throws(() => observer.complete());
-      },
+      next() { observer.complete() },
+      complete() { completed = true },
     });
     observer.next();
+    assert.equal(completed, true);
   });
 
   it('closes the subscription before invoking inner observer', () => {
@@ -128,17 +128,14 @@ describe('observer.complete', () => {
     assert.deepEqual(calls, ['cleanup']);
   });
 
-  it('throws error if the cleanup function throws', () => {
+  it('reports error if the cleanup function throws', () => {
     let error = {};
     let observer;
     new Observable(x => {
       observer = x;
       return () => { throw error };
     }).subscribe();
-    try {
-      observer.complete();
-    } catch (err) {
-      assert.equal(err, error);
-    }
+    observer.complete();
+    assert.equal(hostError, error);
   });
 });
