@@ -58,29 +58,29 @@ describe('observer.next', () => {
     assert.equal(observer.closed, true);
   });
 
-  it('throws if the subscription is not initialized', async () => {
-    let error;
-    new Observable(x => { x.next() }).subscribe({
-      error(err) { error = err },
+  it('queues if the subscription is not initialized', async () => {
+    let value;
+    new Observable(x => { x.next(1) }).subscribe({
+      next(val) { value = val },
     });
+    assert.equal(value, undefined);
     await null;
-    assert.ok(error instanceof Error);
+    assert.equal(value, 1);
   });
 
-  it('throws if the observer is running', () => {
+  it('queues if the observer is running', async () => {
     let observer;
+    let values = [];
     new Observable(x => { observer = x }).subscribe({
-      next() {
-        try {
-          observer.next();
-          assert.ok(false);
-        } catch (e) {
-          assert.ok(true);
-        }
+      next(val) {
+        values.push(val);
+        if (val === 1) observer.next(2);
       },
-      error() {},
     });
-    observer.next();
+    observer.next(1);
+    assert.deepEqual(values, [1]);
+    await null;
+    assert.deepEqual(values, [1, 2]);
   });
 
   it('reports error if "next" is not a method', () => {

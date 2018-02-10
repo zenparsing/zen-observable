@@ -43,31 +43,30 @@ describe('observer.error', () => {
     });
     subscription.unsubscribe();
     observer.error(1);
+    assert.ok(!hostError);
   });
 
-  it('throws if the subscription is not initialized', async () => {
+  it('queues if the subscription is not initialized', async () => {
     let error;
-    new Observable(x => { x.error() }).subscribe({
+    new Observable(x => { x.error({}) }).subscribe({
       error(err) { error = err },
     });
+    assert.equal(error, undefined);
     await null;
-    assert.ok(error instanceof Error);
+    assert.ok(error);
   });
 
-  it('throws if the observer is running', () => {
+  it('queues if the observer is running', async () => {
     let observer;
+    let error;
     new Observable(x => { observer = x }).subscribe({
-      next() {
-        try {
-          observer.error();
-          assert.ok(false);
-        } catch (e) {
-          assert.ok(true);
-        }
-      },
-      error() {},
+      next() { observer.error({}) },
+      error(e) { error = e },
     });
     observer.next();
+    assert.equal(error, undefined);
+    await null;
+    assert.ok(error);
   });
 
   it('closes the subscription before invoking inner observer', () => {
@@ -132,21 +131,15 @@ describe('observer.error', () => {
     assert.deepEqual(calls, ['cleanup']);
   });
 
-  it('throws if the cleanup function throws', () => {
+  it('reports error if the cleanup function throws', () => {
     let error = {};
     let observer;
     new Observable(x => {
       observer = x;
       return () => { throw error };
-    }).subscribe({
-      error() {},
-    });
-    try {
-      observer.error(1);
-      assert.ok(false);
-    } catch (err) {
-      assert.equal(err, error);
-    }
+    }).subscribe();
+    observer.error(1);
+    assert.equal(hostError, error);
   });
 
 });
