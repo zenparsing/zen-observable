@@ -59,13 +59,16 @@ describe('observer.next', () => {
   });
 
   it('queues if the subscription is not initialized', async () => {
-    let value;
-    new Observable(x => { x.next(1) }).subscribe({
-      next(val) { value = val },
+    let values = [];
+    let observer;
+    new Observable(x => { observer = x, x.next(1) }).subscribe({
+      next(val) { values.push(val) },
     });
-    assert.equal(value, undefined);
+    assert.deepEqual(values, []);
+    observer.next(2);
+    assert.deepEqual(values, []);
     await null;
-    assert.equal(value, 1);
+    assert.deepEqual(values, [1, 2]);
   });
 
   it('does not queue if the observer is running', () => {

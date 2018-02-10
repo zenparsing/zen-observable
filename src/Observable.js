@@ -86,6 +86,7 @@ function closeSubscription(subscription) {
 function flushSubscription(subscription) {
   let queue = subscription._queue;
   subscription._queue = undefined;
+  subscription._state = 'ready';
   for (let i = 0; i < queue.length; ++i) {
     notifySubscription(subscription, queue[i].type, queue[i].value);
   }
@@ -149,7 +150,8 @@ class Subscription {
       subscriptionObserver.error(e);
     }
 
-    this._state = 'ready';
+    if (!this._queue)
+      this._state = 'ready';
   }
 
   get closed() {
