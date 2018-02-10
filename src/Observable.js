@@ -89,21 +89,13 @@ function flushSubscription(subscription) {
   subscription._state = 'ready';
   for (let i = 0; i < queue.length; ++i) {
     notifySubscription(subscription, queue[i].type, queue[i].value);
+    if (subscription._state === 'closed')
+      break;
   }
 }
 
 function notifySubscription(subscription, type, value) {
-  if (subscription._state === 'closed')
-    return;
-
-  if (subscription._state !== 'ready') {
-    if (!subscription._queue) {
-      enqueue(() => flushSubscription(subscription));
-      subscription._queue = [];
-    }
-    subscription._queue.push({ type, value });
-    return;
-  }
+  subscription._state = 'running';
 
   let observer = subscription._observer;
 
@@ -129,7 +121,29 @@ function notifySubscription(subscription, type, value) {
 
   if (subscription._state === 'closed')
     cleanupSubscription(subscription);
+  else if (subscription._state === 'running')
+    subscription._state = 'ready';
 }
+
+function onNotify(subscription, type, value) {
+  if (subscription._state === 'closed')
+    return;
+
+  if (subscription._state === 'buffering') {
+    subscription._queue.push({ type, value });
+    return;
+  }
+
+  if (subscription._state !== 'ready') {
+    subscription._state = 'buffering';
+    subscription._queue = [{ type, value }];
+    enqueue(() => flushSubscription(subscription));
+    return;
+  }
+
+  notifySubscription(subscription, type, value);
+}
+
 
 class Subscription {
 
@@ -150,7 +164,7 @@ class Subscription {
       subscriptionObserver.error(e);
     }
 
-    if (!this._queue)
+    if (this._state === 'initializing')
       this._state = 'ready';
   }
 
@@ -169,9 +183,9 @@ class Subscription {
 class SubscriptionObserver {
   constructor(subscription) { this._subscription = subscription }
   get closed() { return this._subscription._state === 'closed' }
-  next(value) { notifySubscription(this._subscription, 'next', value) }
-  error(value) { notifySubscription(this._subscription, 'error', value) }
-  complete() { notifySubscription(this._subscription, 'complete') }
+  next(value) { onNotify(this._subscription, 'next', value) }
+  error(value) { onNotify(this._subscription, 'error', value) }
+  complete() { onNotify(this._subscription, 'complete') }
 }
 
 export class Observable {

@@ -56,7 +56,7 @@ describe('observer.error', () => {
     assert.ok(error);
   });
 
-  it('does not queue if the observer is running', () => {
+  it('queues if the observer is running', async () => {
     let observer;
     let error;
     new Observable(x => { observer = x }).subscribe({
@@ -64,6 +64,8 @@ describe('observer.error', () => {
       error(e) { error = e },
     });
     observer.next();
+    assert.ok(!error);
+    await null;
     assert.ok(error);
   });
 

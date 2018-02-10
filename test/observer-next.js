@@ -62,16 +62,22 @@ describe('observer.next', () => {
     let values = [];
     let observer;
     new Observable(x => { observer = x, x.next(1) }).subscribe({
-      next(val) { values.push(val) },
+      next(val) {
+        values.push(val);
+        if (val === 1) {
+          observer.next(3);
+        }
+      },
     });
-    assert.deepEqual(values, []);
     observer.next(2);
     assert.deepEqual(values, []);
     await null;
     assert.deepEqual(values, [1, 2]);
+    await null;
+    assert.deepEqual(values, [1, 2, 3]);
   });
 
-  it('does not queue if the observer is running', () => {
+  it('queues if the observer is running', async () => {
     let observer;
     let values = [];
     new Observable(x => { observer = x }).subscribe({
@@ -81,6 +87,8 @@ describe('observer.next', () => {
       },
     });
     observer.next(1);
+    assert.deepEqual(values, [1]);
+    await null;
     assert.deepEqual(values, [1, 2]);
   });
 
