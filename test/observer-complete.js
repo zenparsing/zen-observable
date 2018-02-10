@@ -59,7 +59,7 @@ describe('observer.complete', () => {
     assert.equal(completed, true);
   });
 
-  it('queues if the observer is running', async () => {
+  it('does not queue if the observer is running', () => {
     let observer;
     let completed = false
     new Observable(x => { observer = x }).subscribe({
@@ -67,8 +67,6 @@ describe('observer.complete', () => {
       complete() { completed = true },
     });
     observer.next();
-    assert.equal(completed, false);
-    await null;
     assert.equal(completed, true);
   });
 

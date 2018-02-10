@@ -68,7 +68,7 @@ describe('observer.next', () => {
     assert.equal(value, 1);
   });
 
-  it('queues if the observer is running', async () => {
+  it('does not queue if the observer is running', () => {
     let observer;
     let values = [];
     new Observable(x => { observer = x }).subscribe({
@@ -78,8 +78,6 @@ describe('observer.next', () => {
       },
     });
     observer.next(1);
-    assert.deepEqual(values, [1]);
-    await null;
     assert.deepEqual(values, [1, 2]);
   });
 

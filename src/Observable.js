@@ -84,9 +84,7 @@ function closeSubscription(subscription) {
 }
 
 function flushSubscription(subscription) {
-  // ASSERT: subscription._state === 'buffering'
   let queue = subscription._queue;
-  subscription._state = 'ready';
   subscription._queue = undefined;
   for (let i = 0; i < queue.length; ++i) {
     notifySubscription(subscription, queue[i].type, queue[i].value);
@@ -98,7 +96,6 @@ function notifySubscription(subscription, type, value) {
     return;
 
   if (subscription._state !== 'ready') {
-    subscription._state = 'buffering';
     if (!subscription._queue) {
       enqueue(() => flushSubscription(subscription));
       subscription._queue = [];
@@ -108,7 +105,6 @@ function notifySubscription(subscription, type, value) {
   }
 
   let observer = subscription._observer;
-  subscription._state = 'running';
 
   try {
     let m = getMethod(observer, type);
@@ -132,8 +128,6 @@ function notifySubscription(subscription, type, value) {
 
   if (subscription._state === 'closed')
     cleanupSubscription(subscription);
-  else if (subscription._state === 'running')
-    subscription._state = 'ready';
 }
 
 class Subscription {
