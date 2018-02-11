@@ -341,6 +341,50 @@ export class Observable {
     });
   }
 
+  flatMap(fn) {
+    if (typeof fn !== 'function')
+      throw new TypeError(fn + ' is not a function');
+
+    let C = getSpecies(this);
+
+    return new C(observer => {
+      let subscriptions = [];
+
+      let outer = this.subscribe({
+        next(value) {
+          if (fn) {
+            try { value = fn(value) }
+            catch (e) { return observer.error(x) }
+          }
+
+          let inner = C.from(value).subscribe({
+            next(value) { observer.next(value) },
+            error(e) { observer.error(e) },
+            complete() {
+              let i = subscriptions.indexOf(inner);
+              if (i >= 0) subscriptions.splice(i, 1);
+              completeIfDone();
+            }
+          });
+
+          subscriptions.push(inner);
+        },
+        error(e) { observer.error(e) },
+        complete() { completeIfDone() },
+      });
+
+      function completeIfDone() {
+        if (outer.closed && subscriptions.length === 0)
+          observer.complete();
+      }
+
+      return () => {
+        subscriptions.forEach(s => s.unsubscribe());
+        outer.unsubscribe();
+      };
+    });
+  }
+
   [getSymbol('observable')]() { return this }
 
   static from(x) {
