@@ -64,14 +64,17 @@ describe('observer.next', () => {
     assert.equal(observer.closed, true);
   });
 
-  it('reports error if the subscription is not initialized', () => {
+  it('calls start if the subscription is not initialized', () => {
     let values = [];
+    let startCalled = false;
     let observer = getObserver({
+      start() { startCalled = true },
       next(val) { values.push(val) },
     });
     observer.next(1);
-    assert.deepEqual(values, []);
-    assert.ok(hostError);
+    observer.next(2);
+    assert.equal(startCalled, true);
+    assert.deepEqual(values, [1, 2]);
   });
 
   it('reports error if "next" is not a method', () => {

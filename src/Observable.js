@@ -62,7 +62,7 @@ function cleanupSubscription(subscription) {
 
 function subscriptionOpen(subscription) {
   if (subscription._state === 'initializing')
-    hostReportError(new Error('Observer is not ready'));
+    subscription.start();
 
   return subscription._state === 'ready';
 }

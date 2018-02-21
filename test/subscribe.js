@@ -27,13 +27,15 @@ describe('subscribe', () => {
     assert.equal(nextValue, 1);
   });
 
-  it('reports an error if subscriber throws', () => {
-    let errorValue = undefined;
+  it('sends an error if subscriber throws', () => {
+    let errorValue;
+    let startCalled = false;
     new Observable(() => { throw error }).subscribe({
+      start() { startCalled = true },
       error(e) { errorValue = e },
     });
-    assert.ok(hostError);
-    assert.equal(errorValue, undefined);
+    assert.equal(startCalled, true);
+    assert.ok(errorValue);
   });
 
 });

@@ -51,14 +51,16 @@ describe('observer.error', () => {
     assert.ok(!hostError);
   });
 
-  it('reports error if the subscription is not initialized', () => {
+  it('calls start if the subscription is not initialized', () => {
     let error;
+    let startCalled = false;
     let observer = getObserver({
+      start() { startCalled = true },
       error(err) { error = err },
     });
     observer.error(1);
-    assert.equal(error, undefined);
-    assert.ok(hostError);
+    assert.equal(startCalled, true);
+    assert.equal(error, 1);
   });
 
   it('closes the subscription before invoking inner observer', () => {
