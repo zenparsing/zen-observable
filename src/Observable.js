@@ -45,13 +45,6 @@ function hostReportError(e) {
   }
 }
 
-function enqueue(fn) {
-  Promise.resolve().then(() => {
-    try { fn() }
-    catch (e) { hostReportError(e) }
-  });
-}
-
 function cleanupSubscription(subscription) {
   let cleanup = subscription._cleanup;
   if (cleanup === undefined)
@@ -59,136 +52,119 @@ function cleanupSubscription(subscription) {
 
   subscription._cleanup = undefined;
 
-  if (!cleanup) {
-    return;
-  }
-
   try {
-    if (typeof cleanup === 'function') {
+    if (typeof cleanup === 'function')
       cleanup();
-    } else {
-      let unsubscribe = getMethod(cleanup, 'unsubscribe');
-      if (unsubscribe) {
-        unsubscribe.call(cleanup);
-      }
-    }
   } catch (e) {
     hostReportError(e);
   }
+}
+
+function subscriptionOpen(subscription) {
+  if (subscription._state === 'initializing')
+    hostReportError(new Error('Observer is not ready'));
+
+  return subscription._state === 'ready';
 }
 
 function closeSubscription(subscription) {
   subscription._observer = undefined;
-  subscription._queue = undefined;
   subscription._state = 'closed';
 }
 
-function flushSubscription(subscription) {
-  let queue = subscription._queue;
-  if (!queue) {
-    return;
-  }
-  subscription._queue = undefined;
-  subscription._state = 'ready';
-  for (let i = 0; i < queue.length; ++i) {
-    notifySubscription(subscription, queue[i].type, queue[i].value);
-    if (subscription._state === 'closed')
-      break;
-  }
-}
+class SubscriptionObserver {
 
-function notifySubscription(subscription, type, value) {
-  subscription._state = 'running';
-
-  let observer = subscription._observer;
-
-  try {
-    let m = getMethod(observer, type);
-    switch (type) {
-      case 'next':
-        if (m) m.call(observer, value);
-        break;
-      case 'error':
-        closeSubscription(subscription);
-        if (m) m.call(observer, value);
-        else throw value;
-        break;
-      case 'complete':
-        closeSubscription(subscription);
-        if (m) m.call(observer);
-        break;
-    }
-  } catch (e) {
-    hostReportError(e);
-  }
-
-  if (subscription._state === 'closed')
-    cleanupSubscription(subscription);
-  else if (subscription._state === 'running')
-    subscription._state = 'ready';
-}
-
-function onNotify(subscription, type, value) {
-  if (subscription._state === 'closed')
-    return;
-
-  if (subscription._state === 'buffering') {
-    subscription._queue.push({ type, value });
-    return;
-  }
-
-  if (subscription._state !== 'ready') {
-    subscription._state = 'buffering';
-    subscription._queue = [{ type, value }];
-    enqueue(() => flushSubscription(subscription));
-    return;
-  }
-
-  notifySubscription(subscription, type, value);
-}
-
-
-class Subscription {
-
-  constructor(observer, subscriber) {
-    // ASSERT: observer is an object
-    // ASSERT: subscriber is callable
+  constructor(observer) {
+    if (observer === null || observer === undefined)
+      observer = {};
 
     this._cleanup = undefined;
     this._observer = observer;
-    this._queue = undefined;
     this._state = 'initializing';
-
-    let subscriptionObserver = new SubscriptionObserver(this);
-
-    try {
-      this._cleanup = subscriber.call(undefined, subscriptionObserver);
-    } catch (e) {
-      subscriptionObserver.error(e);
-    }
-
-    if (this._state === 'initializing')
-      this._state = 'ready';
   }
 
   get closed() {
     return this._state === 'closed';
   }
 
-  unsubscribe() {
-    if (this._state !== 'closed') {
-      closeSubscription(this);
-      cleanupSubscription(this);
-    }
-  }
-}
+  start(cleanup) {
+    if (this._state !== 'initializing')
+      return;
 
-class SubscriptionObserver {
-  constructor(subscription) { this._subscription = subscription }
-  get closed() { return this._subscription._state === 'closed' }
-  next(value) { onNotify(this._subscription, 'next', value) }
-  error(value) { onNotify(this._subscription, 'error', value) }
-  complete() { onNotify(this._subscription, 'complete') }
+    this._state = 'ready';
+    this._cleanup = cleanup;
+
+    let observer = this._observer;
+
+    let unsubscribe = () => {
+      if (this._state !== 'closed') {
+        closeSubscription(this);
+        cleanupSubscription(this);
+      }
+    };
+
+    try {
+      let m = getMethod(observer, 'start');
+      if (m) m.call(observer, unsubscribe);
+    } catch (e) {
+      hostReportError(e);
+    }
+
+    if (this._state === 'closed')
+      cleanupSubscription(this);
+  }
+
+  next(value) {
+    if (!subscriptionOpen(this))
+      return;
+
+    let observer = this._observer;
+
+    try {
+      let m = getMethod(observer, 'next');
+      if (m) m.call(observer, value);
+    } catch (e) {
+      hostReportError(e);
+    }
+
+    if (this._state === 'closed')
+      cleanupSubscription(this);
+  }
+
+  error(value) {
+    if (!subscriptionOpen(this))
+      return;
+
+    let observer = this._observer;
+    closeSubscription(this);
+
+    try {
+      let m = getMethod(observer, 'error');
+      if (m) m.call(observer, value);
+      else throw value;
+    } catch (e) {
+      hostReportError(e);
+    }
+
+    cleanupSubscription(this);
+  }
+
+  complete() {
+    if (!subscriptionOpen(this))
+      return;
+
+    let observer = this._observer;
+    closeSubscription(this);
+
+    try {
+      let m = getMethod(observer, 'complete');
+      if (m) m.call(observer);
+    } catch (e) {
+      hostReportError(e);
+    }
+
+    cleanupSubscription(this);
+  }
 }
 
 export class Observable {
@@ -204,14 +180,13 @@ export class Observable {
   }
 
   subscribe(observer) {
-    if (typeof observer !== 'object' || observer === null) {
-      observer = {
-        next: observer,
-        error: arguments[1],
-        complete: arguments[2],
-      };
+    let subscriptionObserver = new SubscriptionObserver(observer);
+
+    try {
+      this._subscriber.call(undefined, subscriptionObserver);
+    } catch (e) {
+      subscriptionObserver.error(e);
     }
-    return new Subscription(observer, this._subscriber);
   }
 
   forEach(fn) {
@@ -222,17 +197,20 @@ export class Observable {
       }
 
       function done() {
-        subscription.unsubscribe();
         resolve();
+        cancel();
       }
 
-      let subscription = this.subscribe({
+      let cancel = null;
+
+      this.subscribe({
+        start(c) { cancel = c },
         next(value) {
           try {
             fn(value, done);
           } catch (e) {
             reject(e);
-            subscription.unsubscribe();
+            cancel();
           }
         },
         error: reject,
@@ -248,6 +226,7 @@ export class Observable {
     let C = getSpecies(this);
 
     return new C(observer => this.subscribe({
+      start(cancel) { observer.start(cancel) },
       next(value) {
         try { value = fn(value) }
         catch (e) { return observer.error(e) }
@@ -265,6 +244,7 @@ export class Observable {
     let C = getSpecies(this);
 
     return new C(observer => this.subscribe({
+      start(cancel) { observer.start(cancel) },
       next(value) {
         try { if (!fn(value)) return; }
         catch (e) { return observer.error(e) }
@@ -286,6 +266,8 @@ export class Observable {
     let acc = seed;
 
     return new C(observer => this.subscribe({
+
+      start(cancel) { observer.start(cancel) },
 
       next(value) {
         let first = !hasValue;
@@ -316,15 +298,23 @@ export class Observable {
     let C = getSpecies(this);
 
     return new C(observer => {
-      let subscription;
+      let cancel;
+
+      observer.start(() => {
+        if (cancel) {
+          cancel = undefined;
+          cancel();
+        }
+      });
 
       function startNext(next) {
-        subscription = next.subscribe({
+        next.subscribe({
+          start(c) { cancel = c },
           next(v) { observer.next(v) },
           error(e) { observer.error(e) },
           complete() {
             if (sources.length === 0) {
-              subscription = undefined;
+              cancel = undefined;
               observer.complete();
             } else {
               startNext(C.from(sources.shift()));
@@ -334,13 +324,6 @@ export class Observable {
       }
 
       startNext(this);
-
-      return () => {
-        if (subscription) {
-          subscription = undefined;
-          subscription.unsubscribe();
-        }
-      };
     });
   }
 
@@ -351,40 +334,52 @@ export class Observable {
     let C = getSpecies(this);
 
     return new C(observer => {
-      let subscriptions = [];
-
-      let outer = this.subscribe({
-        next(value) {
-          if (fn) {
-            try { value = fn(value) }
-            catch (e) { return observer.error(e) }
-          }
-
-          let inner = C.from(value).subscribe({
-            next(value) { observer.next(value) },
-            error(e) { observer.error(e) },
-            complete() {
-              let i = subscriptions.indexOf(inner);
-              if (i >= 0) subscriptions.splice(i, 1);
-              completeIfDone();
-            },
-          });
-
-          subscriptions.push(inner);
-        },
-        error(e) { observer.error(e) },
-        complete() { completeIfDone() },
-      });
+      let outerComplete = false;
+      let innerObservers = [];
 
       function completeIfDone() {
-        if (outer.closed && subscriptions.length === 0)
+        if (outerComplete && innerObservers.length === 0)
           observer.complete();
       }
 
-      return () => {
-        subscriptions.forEach(s => s.unsubscribe());
-        outer.unsubscribe();
-      };
+      this.subscribe({
+        start(cancel) {
+          observer.start(() => {
+            innerObservers.forEach(observer => observer.cancel());
+            cancel();
+          });
+        },
+        next(value) {
+          try { value = fn(value) }
+          catch (e) { return observer.error(e) }
+
+          C.from(value).subscribe({
+            cancel: null,
+            start(c) {
+              this.cancel = c;
+              innerObservers.push(this);
+            },
+            next(value) {
+              observer.next(value);
+            },
+            error(e) {
+              observer.error(e);
+            },
+            complete() {
+              let i = innerObservers.indexOf(this);
+              if (i >= 0) innerObservers.splice(i, 1);
+              completeIfDone();
+            },
+          });
+        },
+        error(e) {
+          observer.error(e);
+        },
+        complete() {
+          outerComplete = true;
+          completeIfDone();
+        },
+      });
     });
   }
 
@@ -413,28 +408,26 @@ export class Observable {
       method = getMethod(x, getSymbol('iterator'));
       if (method) {
         return new C(observer => {
-          enqueue(() => {
+          observer.start();
+          if (observer.closed) return;
+          for (let item of method.call(x)) {
+            observer.next(item);
             if (observer.closed) return;
-            for (let item of method.call(x)) {
-              observer.next(item);
-              if (observer.closed) return;
-            }
-            observer.complete();
-          });
+          }
+          observer.complete();
         });
       }
     }
 
     if (Array.isArray(x)) {
       return new C(observer => {
-        enqueue(() => {
+        observer.start();
+        if (observer.closed) return;
+        for (let i = 0; i < x.length; ++i) {
+          observer.next(x[i]);
           if (observer.closed) return;
-          for (let i = 0; i < x.length; ++i) {
-            observer.next(x[i]);
-            if (observer.closed) return;
-          }
-          observer.complete();
-        });
+        }
+        observer.complete();
       });
     }
 
@@ -445,14 +438,13 @@ export class Observable {
     let C = typeof this === 'function' ? this : Observable;
 
     return new C(observer => {
-      enqueue(() => {
+      observer.start();
+      if (observer.closed) return;
+      for (let i = 0; i < items.length; ++i) {
+        observer.next(items[i]);
         if (observer.closed) return;
-        for (let i = 0; i < items.length; ++i) {
-          observer.next(items[i]);
-          if (observer.closed) return;
-        }
-        observer.complete();
-      });
+      }
+      observer.complete();
     });
   }
 

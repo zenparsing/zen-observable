@@ -21,52 +21,44 @@ describe('observer.error', () => {
   it('forwards the argument', () => {
     let args;
     let observer = getObserver({ error(...a) { args = a } });
+    observer.start();
     observer.error(1);
     assert.deepEqual(args, [1]);
   });
 
   it('does not return a value', () => {
     let observer = getObserver({ error() { return 1 } });
+    observer.start();
     assert.equal(observer.error(), undefined);
   });
 
   it('does not throw when the subscription is complete', () => {
     let observer = getObserver({ error() {} });
+    observer.start();
     observer.complete();
     observer.error('error');
   });
 
   it('does not throw when the subscription is cancelled', () => {
-    let observer;
-    let subscription = new Observable(x => { observer = x }).subscribe({
+    let cancel;
+    let observer = getObserver({
+      start(c) { cancel = c },
       error() {},
     });
-    subscription.unsubscribe();
+    observer.start();
+    cancel();
     observer.error(1);
     assert.ok(!hostError);
   });
 
-  it('queues if the subscription is not initialized', async () => {
+  it('reports error if the subscription is not initialized', () => {
     let error;
-    new Observable(x => { x.error({}) }).subscribe({
+    let observer = getObserver({
       error(err) { error = err },
     });
+    observer.error(1);
     assert.equal(error, undefined);
-    await null;
-    assert.ok(error);
-  });
-
-  it('queues if the observer is running', async () => {
-    let observer;
-    let error;
-    new Observable(x => { observer = x }).subscribe({
-      next() { observer.error({}) },
-      error(e) { error = e },
-    });
-    observer.next();
-    assert.ok(!error);
-    await null;
-    assert.ok(error);
+    assert.ok(hostError);
   });
 
   it('closes the subscription before invoking inner observer', () => {
@@ -74,12 +66,14 @@ describe('observer.error', () => {
     let observer = getObserver({
       error() { closed = observer.closed },
     });
+    observer.start();
     observer.error(1);
     assert.equal(closed, true);
   });
 
   it('reports an error if "error" is not a method', () => {
     let observer = getObserver({ error: 1 });
+    observer.start();
     observer.error(1);
     assert.ok(hostError);
   });
@@ -87,6 +81,7 @@ describe('observer.error', () => {
   it('reports an error if "error" is undefined', () => {
     let error = {};
     let observer = getObserver({ error: undefined });
+    observer.start();
     observer.error(error);
     assert.equal(hostError, error);
   });
@@ -94,6 +89,7 @@ describe('observer.error', () => {
   it('reports an error if "error" is null', () => {
     let error = {};
     let observer = getObserver({ error: null });
+    observer.start();
     observer.error(error);
     assert.equal(hostError, error);
   });
@@ -101,43 +97,33 @@ describe('observer.error', () => {
   it('reports error if "error" throws', () => {
     let error = {};
     let observer = getObserver({ error() { throw error } });
+    observer.start();
     observer.error(1);
     assert.equal(hostError, error);
   });
 
   it('calls the cleanup method after "error"', () => {
     let calls = [];
-    let observer;
-    new Observable(x => {
-      observer = x;
-      return () => { calls.push('cleanup') };
-    }).subscribe({
+    let observer = getObserver({
       error() { calls.push('error') },
     });
+    observer.start(() => { calls.push('cleanup') });
     observer.error();
     assert.deepEqual(calls, ['error', 'cleanup']);
   });
 
   it('calls the cleanup method if there is no "error"', () => {
     let calls = [];
-    let observer;
-    new Observable(x => {
-      observer = x;
-      return () => { calls.push('cleanup') };
-    }).subscribe({});
-    try {
-      observer.error();
-    } catch (err) {}
+    let observer = getObserver();
+    observer.start(() => { calls.push('cleanup') });
+    observer.error();
     assert.deepEqual(calls, ['cleanup']);
   });
 
   it('reports error if the cleanup function throws', () => {
     let error = {};
-    let observer;
-    new Observable(x => {
-      observer = x;
-      return () => { throw error };
-    }).subscribe();
+    let observer = getObserver();
+    observer.start(() => { throw error });
     observer.error(1);
     assert.equal(hostError, error);
   });

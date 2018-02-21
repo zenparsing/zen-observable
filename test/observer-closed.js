@@ -16,12 +16,15 @@ describe('observer.closed', () => {
   it('returns false when the subscription is open', () => {
     new Observable(observer => {
       assert.equal(observer.closed, false);
+      observer.start();
+      assert.equal(observer.closed, false);
     }).subscribe();
   });
 
   it('returns true when the subscription is completed', () => {
     let observer;
     new Observable(x => { observer = x; }).subscribe();
+    observer.start();
     observer.complete();
     assert.equal(observer.closed, true);
   });
@@ -29,6 +32,7 @@ describe('observer.closed', () => {
   it('returns true when the subscription is errored', () => {
     let observer;
     new Observable(x => { observer = x; }).subscribe(null, () => {});
+    observer.start();
     observer.error();
     assert.equal(observer.closed, true);
   });

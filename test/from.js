@@ -54,10 +54,7 @@ describe('from', () => {
 
     it('returns an observable wrapping @@observable result', () => {
       let inner = {
-        subscribe(x) {
-          observer = x;
-          return () => { cleanupCalled = true };
-        },
+        subscribe(x) { observer = x },
       };
       let observer;
       let cleanupCalled = true;
@@ -66,6 +63,7 @@ describe('from', () => {
       });
       observable.subscribe();
       assert.equal(typeof observer.next, 'function');
+      observer.start(() => { cleanupCalled = true });
       observer.complete();
       assert.equal(cleanupCalled, true);
     });
@@ -76,14 +74,12 @@ describe('from', () => {
       assert.throws(() => Observable.from({ [Symbol.iterator]: 1 }));
     });
 
-    it('returns an observable wrapping iterables', async () => {
+    it('returns an observable wrapping iterables', () => {
       let calls = [];
       let subscription = Observable.from(iterable).subscribe({
         next(v) { calls.push(['next', v]) },
         complete() { calls.push(['complete']) },
       });
-      assert.deepEqual(calls, []);
-      await null;
       assert.deepEqual(calls, [
         ['next', 1],
         ['next', 2],

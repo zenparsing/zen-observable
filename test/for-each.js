@@ -40,6 +40,7 @@ describe('forEach', () => {
     try {
       let observer;
       let promise = new Observable(x => { observer = x }).forEach(() => {});
+      observer.start();
       observer.error(error);
       await promise;
       assert.ok(false);
@@ -51,6 +52,7 @@ describe('forEach', () => {
   it('resolves with undefined if the producer calls complete', async () => {
     let observer;
     let promise = new Observable(x => { observer = x }).forEach(() => {});
+    observer.start();
     observer.complete();
     assert.equal(await promise, undefined);
   });
