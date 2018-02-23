@@ -1,10 +1,10 @@
 import assert from 'assert';
 
 describe('concat', () => {
-  it('concatenates the supplied Observable arguments', async () => {
+  it('concatenates the supplied Observable arguments', () => {
     let list = [];
 
-    await Observable
+    Observable
       .from([1, 2, 3, 4])
       .concat(Observable.of(5, 6, 7))
       .forEach(x => list.push(x));

@@ -1,8 +1,8 @@
 import assert from 'assert';
 
 describe('reduce', () => {
-  it('reduces without a seed', async () => {
-    await Observable.from([1, 2, 3, 4, 5, 6]).reduce((a, b) => {
+  it('reduces without a seed', () => {
+    Observable.from([1, 2, 3, 4, 5, 6]).reduce((a, b) => {
       return a + b;
     }).forEach(x => {
       assert.equal(x, 21);
@@ -20,7 +20,7 @@ describe('reduce', () => {
     }
   });
 
-  it('reduces with a seed', async () => {
+  it('reduces with a seed', () => {
     Observable.from([1, 2, 3, 4, 5, 6]).reduce((a, b) => {
       return a + b;
     }, 100).forEach(x => {
@@ -28,8 +28,8 @@ describe('reduce', () => {
     });
   });
 
-  it('reduces an empty list with a seed', async () => {
-    await Observable.from([]).reduce((a, b) => {
+  it('reduces an empty list with a seed', () => {
+    Observable.from([]).reduce((a, b) => {
       return a + b;
     }, 100).forEach(x => {
       assert.equal(x, 100);

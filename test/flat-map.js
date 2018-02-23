@@ -1,10 +1,10 @@
 import assert from 'assert';
 
 describe('flatMap', () => {
-  it('maps and flattens the results using the supplied callback', async () => {
+  it('maps and flattens the results using the supplied callback', () => {
     let list = [];
 
-    await Observable.of('a', 'b', 'c').flatMap(x =>
+    Observable.of('a', 'b', 'c').flatMap(x =>
       Observable.of(1, 2, 3).map(y => [x, y])
     ).forEach(x => list.push(x));
 
