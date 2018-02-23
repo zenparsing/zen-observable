@@ -35,7 +35,7 @@ let observable = new Observable(observer => {
 
 Creates a new Observable object using the specified subscriber function.  The subscriber function is called whenever the `subscribe` method of the observable object is invoked.  The subscriber function is passed an *observer* object which has the following methods:
 
-- `start(cleanup)` Starts the subscription and registers a cleanup function
+- `start(cleanup)` Starts the subscription and registers a cleanup function.
 - `next(value)` Sends the next value in the sequence.
 - `error(exception)` Terminates the sequence with an exception.
 - `complete()` Terminates the sequence successfully.
