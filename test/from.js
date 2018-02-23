@@ -41,25 +41,22 @@ describe('from', () => {
     it('wraps the input if it is not an instance of Observable', () => {
       let obj = {
         'constructor': Observable,
-        [Symbol.observable]() { return this },
+        [Symbol.subscribe]() {},
       };
       assert.ok(Observable.from(obj) !== obj);
     });
 
-    it('throws if @@observable property is not a method', () => {
+    it('throws if @@subscribe property is not a method', () => {
       assert.throws(() => Observable.from({
-        [Symbol.observable]: 1
+        [Symbol.subscribe]: 1
       }));
     });
 
-    it('returns an observable wrapping @@observable result', () => {
-      let inner = {
-        subscribe(x) { observer = x },
-      };
+    it('returns an observable wrapping @@subscribe call', () => {
       let observer;
       let cleanupCalled = true;
       let observable = Observable.from({
-        [Symbol.observable]() { return inner },
+        [Symbol.subscribe](x) { observer = x },
       });
       observable.subscribe();
       assert.equal(typeof observer.next, 'function');

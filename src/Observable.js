@@ -4,8 +4,8 @@ const hasSymbols = () => typeof Symbol === 'function';
 const hasSymbol = name => hasSymbols() && Boolean(Symbol[name]);
 const getSymbol = name => hasSymbol(name) ? Symbol[name] : '@@' + name;
 
-if (hasSymbols() && !hasSymbol('observable')) {
-  Symbol.observable = Symbol('observable');
+if (hasSymbols() && !hasSymbol('subscribe')) {
+  Symbol.subscribe = Symbol('subscribe');
 }
 
 // === Abstract Operations ===
@@ -187,6 +187,10 @@ export class Observable {
     } catch (e) {
       subscriptionObserver.error(e);
     }
+  }
+
+  [getSymbol('subscribe')](observer) {
+    return this.subscribe(observer);
   }
 
   forEach(fn) {
@@ -383,26 +387,18 @@ export class Observable {
     });
   }
 
-  [getSymbol('observable')]() { return this }
-
   static from(x) {
     let C = typeof this === 'function' ? this : Observable;
 
     if (x == null)
       throw new TypeError(x + ' is not an object');
 
-    let method = getMethod(x, getSymbol('observable'));
-    if (method) {
-      let observable = method.call(x);
+    if (isObservable(x) && x.constructor === C)
+      return x;
 
-      if (Object(observable) !== observable)
-        throw new TypeError(observable + ' is not an object');
-
-      if (isObservable(observable) && observable.constructor === C)
-        return observable;
-
-      return new C(observer => observable.subscribe(observer));
-    }
+    let method = getMethod(x, getSymbol('subscribe'));
+    if (method)
+      return new C(observer => method.call(x, observer));
 
     if (hasSymbol('iterator')) {
       method = getMethod(x, getSymbol('iterator'));
@@ -448,7 +444,9 @@ export class Observable {
     });
   }
 
-  static get [getSymbol('species')]() { return this }
+  static get [getSymbol('species')]() {
+    return this;
+  }
 
 }
 
