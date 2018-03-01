@@ -57,16 +57,4 @@ describe('forEach', () => {
     assert.equal(await promise, undefined);
   });
 
-  it('provides a cancellation function as the second argument', async () => {
-    let observer;
-    let results = [];
-    await Observable.of(1, 2, 3).forEach((value, cancel) => {
-      results.push(value);
-      if (value > 1) {
-        return cancel();
-      }
-    });
-    assert.deepEqual(results, [1, 2]);
-  });
-
 });

@@ -200,18 +200,13 @@ export class Observable {
         return;
       }
 
-      function done() {
-        resolve();
-        cancel();
-      }
-
       let cancel = null;
 
       this.subscribe({
         start(c) { cancel = c },
         next(value) {
           try {
-            fn(value, done);
+            fn(value);
           } catch (e) {
             reject(e);
             cancel();
