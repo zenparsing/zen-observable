@@ -45,12 +45,12 @@ function hostReportError(e) {
   }
 }
 
-function performCleanup(observer) {
-  let cleanup = observer._cleanup;
+function performCleanup(subscription) {
+  let cleanup = subscription._cleanup;
   if (cleanup === undefined)
     return;
 
-  observer._cleanup = undefined;
+  subscription._cleanup = undefined;
 
   try {
     if (typeof cleanup === 'function')
@@ -60,19 +60,19 @@ function performCleanup(observer) {
   }
 }
 
-function observerOpen(observer) {
-  if (observer._state === 'initializing')
-    observer.start();
+function subscriptionOpen(subscription) {
+  if (subscription._state === 'initializing')
+    subscription.start();
 
-  return observer._state === 'ready';
+  return subscription._state === 'ready';
 }
 
-function closeObserver(observer) {
-  observer._observer = undefined;
-  observer._state = 'closed';
+function subscriptionClose(subscription) {
+  subscription._observer = undefined;
+  subscription._state = 'closed';
 }
 
-class ManagedObserver {
+class Subscription {
 
   constructor(observer) {
     if (observer === null || observer === undefined)
@@ -98,7 +98,7 @@ class ManagedObserver {
 
     let cancel = () => {
       if (this._state !== 'closed') {
-        closeObserver(this);
+        subscriptionClose(this);
         performCleanup(this);
       }
     };
@@ -115,7 +115,7 @@ class ManagedObserver {
   }
 
   next(value) {
-    if (!observerOpen(this))
+    if (!subscriptionOpen(this))
       return;
 
     let observer = this._observer;
@@ -132,11 +132,11 @@ class ManagedObserver {
   }
 
   error(value) {
-    if (!observerOpen(this))
+    if (!subscriptionOpen(this))
       return;
 
     let observer = this._observer;
-    closeObserver(this);
+    subscriptionClose(this);
 
     try {
       let m = getMethod(observer, 'error');
@@ -150,11 +150,11 @@ class ManagedObserver {
   }
 
   complete() {
-    if (!observerOpen(this))
+    if (!subscriptionOpen(this))
       return;
 
     let observer = this._observer;
-    closeObserver(this);
+    subscriptionClose(this);
 
     try {
       let m = getMethod(observer, 'complete');
@@ -180,12 +180,12 @@ export class Observable {
   }
 
   observe(observer) {
-    let managedObserver = new ManagedObserver(observer);
+    let subscription = new Subscription(observer);
 
     try {
-      this._executor.call(undefined, managedObserver);
+      this._executor.call(undefined, subscription);
     } catch (e) {
-      managedObserver.error(e);
+      subscription.error(e);
     }
   }
 
