@@ -41,24 +41,24 @@ describe('from', () => {
     it('wraps the input if it is not an instance of Observable', () => {
       let obj = {
         'constructor': Observable,
-        [Symbol.subscribe]() {},
+        [Symbol.observe]() {},
       };
       assert.ok(Observable.from(obj) !== obj);
     });
 
-    it('throws if @@subscribe property is not a method', () => {
+    it('throws if @@observe property is not a method', () => {
       assert.throws(() => Observable.from({
-        [Symbol.subscribe]: 1
+        [Symbol.observe]: 1
       }));
     });
 
-    it('returns an observable wrapping @@subscribe call', () => {
+    it('returns an observable wrapping @@observe call', () => {
       let observer;
       let cleanupCalled = true;
       let observable = Observable.from({
-        [Symbol.subscribe](x) { observer = x },
+        [Symbol.observe](x) { observer = x },
       });
-      observable.subscribe();
+      observable.observe();
       assert.equal(typeof observer.next, 'function');
       observer.start(() => { cleanupCalled = true });
       observer.complete();
@@ -73,7 +73,7 @@ describe('from', () => {
 
     it('returns an observable wrapping iterables', () => {
       let calls = [];
-      let subscription = Observable.from(iterable).subscribe({
+      let subscription = Observable.from(iterable).observe({
         next(v) { calls.push(['next', v]) },
         complete() { calls.push(['complete']) },
       });

@@ -4,8 +4,8 @@ const hasSymbols = () => typeof Symbol === 'function';
 const hasSymbol = name => hasSymbols() && Boolean(Symbol[name]);
 const getSymbol = name => hasSymbol(name) ? Symbol[name] : '@@' + name;
 
-if (hasSymbols() && !hasSymbol('subscribe')) {
-  Symbol.subscribe = Symbol('subscribe');
+if (hasSymbols() && !hasSymbol('observe')) {
+  Symbol.observe = Symbol('observe');
 }
 
 // === Abstract Operations ===
@@ -45,12 +45,12 @@ function hostReportError(e) {
   }
 }
 
-function cleanupSubscription(subscription) {
-  let cleanup = subscription._cleanup;
+function performCleanup(observer) {
+  let cleanup = observer._cleanup;
   if (cleanup === undefined)
     return;
 
-  subscription._cleanup = undefined;
+  observer._cleanup = undefined;
 
   try {
     if (typeof cleanup === 'function')
@@ -60,19 +60,19 @@ function cleanupSubscription(subscription) {
   }
 }
 
-function subscriptionOpen(subscription) {
-  if (subscription._state === 'initializing')
-    subscription.start();
+function observerOpen(observer) {
+  if (observer._state === 'initializing')
+    observer.start();
 
-  return subscription._state === 'ready';
+  return observer._state === 'ready';
 }
 
-function closeSubscription(subscription) {
-  subscription._observer = undefined;
-  subscription._state = 'closed';
+function closeObserver(observer) {
+  observer._observer = undefined;
+  observer._state = 'closed';
 }
 
-class SubscriptionObserver {
+class ManagedObserver {
 
   constructor(observer) {
     if (observer === null || observer === undefined)
@@ -96,26 +96,26 @@ class SubscriptionObserver {
 
     let observer = this._observer;
 
-    let unsubscribe = () => {
+    let cancel = () => {
       if (this._state !== 'closed') {
-        closeSubscription(this);
-        cleanupSubscription(this);
+        closeObserver(this);
+        performCleanup(this);
       }
     };
 
     try {
       let m = getMethod(observer, 'start');
-      if (m) m.call(observer, unsubscribe);
+      if (m) m.call(observer, cancel);
     } catch (e) {
       hostReportError(e);
     }
 
     if (this._state === 'closed')
-      cleanupSubscription(this);
+      performCleanup(this);
   }
 
   next(value) {
-    if (!subscriptionOpen(this))
+    if (!observerOpen(this))
       return;
 
     let observer = this._observer;
@@ -128,15 +128,15 @@ class SubscriptionObserver {
     }
 
     if (this._state === 'closed')
-      cleanupSubscription(this);
+      performCleanup(this);
   }
 
   error(value) {
-    if (!subscriptionOpen(this))
+    if (!observerOpen(this))
       return;
 
     let observer = this._observer;
-    closeSubscription(this);
+    closeObserver(this);
 
     try {
       let m = getMethod(observer, 'error');
@@ -146,15 +146,15 @@ class SubscriptionObserver {
       hostReportError(e);
     }
 
-    cleanupSubscription(this);
+    performCleanup(this);
   }
 
   complete() {
-    if (!subscriptionOpen(this))
+    if (!observerOpen(this))
       return;
 
     let observer = this._observer;
-    closeSubscription(this);
+    closeObserver(this);
 
     try {
       let m = getMethod(observer, 'complete');
@@ -163,34 +163,34 @@ class SubscriptionObserver {
       hostReportError(e);
     }
 
-    cleanupSubscription(this);
+    performCleanup(this);
   }
 }
 
 export class Observable {
 
-  constructor(subscriber) {
+  constructor(executor) {
     if (!(this instanceof Observable))
       throw new TypeError('Observable cannot be called as a function');
 
-    if (typeof subscriber !== 'function')
+    if (typeof executor !== 'function')
       throw new TypeError('Observable initializer must be a function');
 
-    this._subscriber = subscriber;
+    this._executor = executor;
   }
 
-  subscribe(observer) {
-    let subscriptionObserver = new SubscriptionObserver(observer);
+  observe(observer) {
+    let managedObserver = new ManagedObserver(observer);
 
     try {
-      this._subscriber.call(undefined, subscriptionObserver);
+      this._executor.call(undefined, managedObserver);
     } catch (e) {
-      subscriptionObserver.error(e);
+      managedObserver.error(e);
     }
   }
 
-  [getSymbol('subscribe')](observer) {
-    return this.subscribe(observer);
+  [getSymbol('observe')](observer) {
+    return this.observe(observer);
   }
 
   forEach(fn) {
@@ -202,7 +202,7 @@ export class Observable {
 
       let cancel = null;
 
-      this.subscribe({
+      this.observe({
         start(c) { cancel = c },
         next(value) {
           try {
@@ -224,7 +224,7 @@ export class Observable {
 
     let C = getSpecies(this);
 
-    return new C(observer => this.subscribe({
+    return new C(observer => this.observe({
       start(cancel) { observer.start(cancel) },
       next(value) {
         try { value = fn(value) }
@@ -242,7 +242,7 @@ export class Observable {
 
     let C = getSpecies(this);
 
-    return new C(observer => this.subscribe({
+    return new C(observer => this.observe({
       start(cancel) { observer.start(cancel) },
       next(value) {
         try { if (!fn(value)) return; }
@@ -264,7 +264,7 @@ export class Observable {
     let seed = arguments[1];
     let acc = seed;
 
-    return new C(observer => this.subscribe({
+    return new C(observer => this.observe({
 
       start(cancel) { observer.start(cancel) },
 
@@ -307,7 +307,7 @@ export class Observable {
       });
 
       function startNext(next) {
-        next.subscribe({
+        next.observe({
           start(c) { cancel = c },
           next(v) { observer.next(v) },
           error(e) { observer.error(e) },
@@ -341,7 +341,7 @@ export class Observable {
           observer.complete();
       }
 
-      this.subscribe({
+      this.observe({
         start(cancel) {
           observer.start(() => {
             innerObservers.forEach(observer => observer.cancel());
@@ -352,7 +352,7 @@ export class Observable {
           try { value = fn(value) }
           catch (e) { return observer.error(e) }
 
-          C.from(value).subscribe({
+          C.from(value).observe({
             cancel: null,
             start(c) {
               this.cancel = c;
@@ -391,7 +391,7 @@ export class Observable {
     if (isObservable(x) && x.constructor === C)
       return x;
 
-    let method = getMethod(x, getSymbol('subscribe'));
+    let method = getMethod(x, getSymbol('observe'));
     if (method)
       return new C(observer => method.call(x, observer));
 
@@ -448,7 +448,7 @@ export class Observable {
 if (hasSymbols()) {
   Object.defineProperty(Observable, Symbol('extensions'), {
     value: {
-      symbol: getSymbol('observable'),
+      symbol: getSymbol('observe'),
       hostReportError,
     },
     configurabe: true,

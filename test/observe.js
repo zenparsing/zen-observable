@@ -1,16 +1,16 @@
 import assert from 'assert';
 import { testMethodProperty } from './properties.js';
 
-describe('subscribe', () => {
+describe('observe', () => {
 
-  function subscribe(observer) {
-    let subscriptionObserver;
-    new Observable(x => { subscriptionObserver = x }).subscribe(observer);
-    return subscriptionObserver;
+  function observe(observer) {
+    let managedObserver;
+    new Observable(x => { managedObserver = x }).observe(observer);
+    return managedObserver;
   }
 
   it('is a method of Observable.prototype', () => {
-    testMethodProperty(Observable.prototype, 'subscribe', {
+    testMethodProperty(Observable.prototype, 'observe', {
       configurable: true,
       writable: true,
       length: 1,
@@ -19,7 +19,7 @@ describe('subscribe', () => {
 
   it('accepts an observer argument', () => {
     let nextValue;
-    let observer = subscribe({
+    let observer = observe({
       next(v) { nextValue = v },
     });
     observer.start();
@@ -30,7 +30,7 @@ describe('subscribe', () => {
   it('sends an error if subscriber throws', () => {
     let errorValue;
     let startCalled = false;
-    new Observable(() => { throw error }).subscribe({
+    new Observable(() => { throw error }).observe({
       start() { startCalled = true },
       error(e) { errorValue = e },
     });

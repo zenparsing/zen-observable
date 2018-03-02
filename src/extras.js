@@ -11,7 +11,7 @@ export function merge(...sources) {
 
     observer.start(() => cancels.forEach(cancel => cancel()));
 
-    sources.forEach(source => Observable.from(source).subscribe({
+    sources.forEach(source => Observable.from(source).observe({
       start(c) {
         cancels.push(c);
       },
@@ -41,7 +41,7 @@ export function combineLatest(...sources) {
 
     observer.start(() => cancels.forEach(cancel => cancel()));
 
-    sources.forEach((source, index) => Observable.from(source).subscribe({
+    sources.forEach((source, index) => Observable.from(source).observe({
       start(c) {
         cancels.push(c);
       },
@@ -80,7 +80,7 @@ export function zip(...sources) {
       if (observer.closed)
         return;
 
-      Observable.from(source).subscribe({
+      Observable.from(source).observe({
         start(c) {
           cancels.push(c);
           queues[index].complete = false;

@@ -4,7 +4,7 @@ import { testMethodProperty } from './properties.js';
 describe('observer.closed', () => {
   it('is a getter on SubscriptionObserver.prototype', () => {
     let observer;
-    new Observable(x => { observer = x }).subscribe();
+    new Observable(x => { observer = x }).observe();
     testMethodProperty(Object.getPrototypeOf(observer), 'closed', {
       get: true,
       configurable: true,
@@ -18,12 +18,12 @@ describe('observer.closed', () => {
       assert.equal(observer.closed, false);
       observer.start();
       assert.equal(observer.closed, false);
-    }).subscribe();
+    }).observe();
   });
 
   it('returns true when the subscription is completed', () => {
     let observer;
-    new Observable(x => { observer = x; }).subscribe();
+    new Observable(x => { observer = x; }).observe();
     observer.start();
     observer.complete();
     assert.equal(observer.closed, true);
@@ -31,7 +31,7 @@ describe('observer.closed', () => {
 
   it('returns true when the subscription is errored', () => {
     let observer;
-    new Observable(x => { observer = x; }).subscribe(null, () => {});
+    new Observable(x => { observer = x; }).observe(null, () => {});
     observer.start();
     observer.error();
     assert.equal(observer.closed, true);

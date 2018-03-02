@@ -18,7 +18,7 @@ Observable.of(1, 2, 3).forEach(x => console.log(x));
 
 ## API
 
-### new Observable(subscriber)
+### new Observable(executor)
 
 ```js
 let observable = new Observable(observer => {
@@ -33,19 +33,19 @@ let observable = new Observable(observer => {
 });
 ```
 
-Creates a new Observable object using the specified subscriber function.  The subscriber function is called whenever the `subscribe` method of the observable object is invoked.  The subscriber function is passed an *observer* object which has the following methods:
+Creates a new Observable object using the specified executor function.  The executor function is called whenever the `observe` method of the observable object is invoked.  The executor function is passed an *observer* object which has the following methods:
 
 - `start(cleanup)` Starts the subscription and registers a cleanup function.
 - `next(value)` Sends the next value in the sequence.
 - `error(exception)` Terminates the sequence with an exception.
 - `complete()` Terminates the sequence successfully.
-- `closed` A boolean property whose value is `true` if the observer's subscription is closed.
+- `closed` A boolean accessor property whose value is `true` if the observer is closed.
 
 ### Observable.of(...items)
 
 ```js
 // Logs 1, 2, 3
-Observable.of(1, 2, 3).subscribe(x => {
+Observable.of(1, 2, 3).forEach(x => {
   console.log(x);
 });
 ```
@@ -58,14 +58,14 @@ Returns an observable which will emit each supplied argument.
 let list = [1, 2, 3];
 
 // Iterate over an object
-Observable.from(list).subscribe(x => {
+Observable.from(list).forEach(x => {
   console.log(x);
 });
 ```
 
 ```js
 // Convert something 'observable' to an Observable instance
-Observable.from(otherObservable).subscribe(x => {
+Observable.from(otherObservable).forEach(x => {
   console.log(x);
 });
 ```
@@ -75,10 +75,10 @@ Converts `value` to an Observable.
 - If `value` is an implementation of Observable, then it is converted to an instance of Observable as defined by this library.
 - Otherwise, it is converted to an Observable which synchronously iterates over `value`.
 
-### observable.subscribe([observer])
+### observable.observe([observer])
 
 ```js
-observable.subscribe({
+observable.observe({
   start(cancel) { console.log('Subscription initialized') },
   next(x) { console.log(x) },
   error(err) { console.log(`Finished with error: ${ err }`) },

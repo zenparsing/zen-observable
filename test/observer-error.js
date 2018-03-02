@@ -5,7 +5,7 @@ describe('observer.error', () => {
 
   function getObserver(inner) {
     let observer;
-    new Observable(x => { observer = x }).subscribe(inner);
+    new Observable(x => { observer = x }).observe(inner);
     return observer;
   }
 
