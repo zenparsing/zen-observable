@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { parse } from './parse.js';
+import { parse } from '../parse.js';
 import { zip } from '../../src/extras.js';
 
 describe('extras/zip', () => {

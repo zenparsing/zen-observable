@@ -196,8 +196,7 @@ export class Observable {
   forEach(fn) {
     return new Promise((resolve, reject) => {
       if (typeof fn !== 'function') {
-        reject(new TypeError(fn + ' is not a function'));
-        return;
+        throw new TypeError(fn + ' is not a function');
       }
 
       let cancel = null;
@@ -219,12 +218,7 @@ export class Observable {
   }
 
   map(fn) {
-    if (typeof fn !== 'function')
-      throw new TypeError(fn + ' is not a function');
-
-    let C = getSpecies(this);
-
-    return new C(observer => this.observe({
+    return new (getSpecies(this))(observer => this.observe({
       start(cancel) { observer.start(cancel) },
       next(value) {
         try { value = fn(value) }
@@ -237,18 +231,34 @@ export class Observable {
   }
 
   filter(fn) {
-    if (typeof fn !== 'function')
-      throw new TypeError(fn + ' is not a function');
-
-    let C = getSpecies(this);
-
-    return new C(observer => this.observe({
+    return new (getSpecies(this))(observer => this.observe({
       start(cancel) { observer.start(cancel) },
       next(value) {
         try { if (!fn(value)) return; }
         catch (e) { return observer.error(e) }
         observer.next(value);
       },
+      error(e) { observer.error(e) },
+      complete() { observer.complete() },
+    }));
+  }
+
+  takeUntil(signal) {
+    return new (getSpecies(this))(observer => this.observe({
+      start(cancel) {
+        Observable.from(signal).observe({
+          start(cancelSignal) {
+            observer.start(() => {
+              cancel();
+              cancelSignal();
+            });
+          },
+          next() { observer.complete() },
+          error(e) { observer.error(e) },
+          complete() { observer.complete() },
+        });
+      },
+      next(value) { observer.next(value) },
       error(e) { observer.error(e) },
       complete() { observer.complete() },
     }));
