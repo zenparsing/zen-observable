@@ -105,3 +105,34 @@ export function zip(...sources) {
     });
   });
 }
+
+// Emits all values from all inputs in series
+export function concat(...sources) {
+  return new Observable(observer => {
+    let cancel;
+
+    observer.start(() => {
+      if (cancel) {
+        cancel = undefined;
+        cancel();
+      }
+    });
+
+    function startNext() {
+      if (sources.length === 0) {
+        cancel = undefined;
+        observer.complete();
+        return;
+      }
+
+      Observable.from(sources.shift()).observe({
+        start(c) { cancel = c },
+        next(v) { observer.next(v) },
+        error(e) { observer.error(e) },
+        complete() { startNext() },
+      });
+    }
+
+    startNext();
+  });
+}
