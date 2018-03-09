@@ -122,8 +122,6 @@ Returns a new Observable that emits all values which pass the test implemented b
 
 ### observable.map(callback)
 
-Returns a new Observable that emits the results of calling the `callback` argument for every value in the stream.
-
 ```js
 Observable.of(1, 2, 3).map(value => {
   return value * 2;
@@ -135,29 +133,29 @@ Observable.of(1, 2, 3).map(value => {
 // 6
 ```
 
-### observable.reduce(callback [,initialValue])
+Returns a new Observable that emits the results of calling the `callback` argument for every value in the stream.
+
+### observable.takeUntil(signal)
 
 ```js
-Observable.of(0, 1, 2, 3, 4).reduce((previousValue, currentValue) => {
-  return previousValue + currentValue;
-}).forEach(result => {
-  console.log(result);
+const everySecond = new Observable(sink => {
+  let i = 1;
+  let interval = setInterval(() => sink.next(i++), 1000);
+  sink.start(() => clearInterval(interval));
 });
-// 10
+
+const fiveSeconds = new Observable(sink => {
+  let timeout = setTimeout(() => sink.next(), 5000);
+  sink.start(() => clearTimeout(timeout));
+});
+
+everySecond.takeUntil(fiveSeconds).forEach(value => {
+  console.log(value);
+});
+// 1
+// 2
+// 3
+// 4
 ```
 
-Returns a new Observable that applies a function against an accumulator and each value of the stream to reduce it to a single value.
-
-### observable.concat(...sources)
-
-```js
-Observable.of(1, 2, 3).concat(
-  Observable.of(4, 5, 6),
-  Observable.of(7, 8, 9)
-).forEach(result => {
-  console.log(result);
-});
-// 1, 2, 3, 4, 5, 6, 7, 8, 9
-```
-
-Merges the current observable with additional observables.
+Returns a new Observable that emits values from the stream until the first value from the signal stream is received.
