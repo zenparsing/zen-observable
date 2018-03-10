@@ -67,7 +67,7 @@ function subscriptionOpen(subscription) {
   return subscription._state === 'ready';
 }
 
-function subscriptionClose(subscription) {
+function closeSubscription(subscription) {
   subscription._observer = undefined;
   subscription._state = 'closed';
 }
@@ -98,7 +98,7 @@ class Subscription {
 
     let cancel = () => {
       if (this._state !== 'closed') {
-        subscriptionClose(this);
+        closeSubscription(this);
         performCleanup(this);
       }
     };
@@ -136,7 +136,7 @@ class Subscription {
       return;
 
     let observer = this._observer;
-    subscriptionClose(this);
+    closeSubscription(this);
 
     try {
       let m = getMethod(observer, 'error');
@@ -154,7 +154,7 @@ class Subscription {
       return;
 
     let observer = this._observer;
-    subscriptionClose(this);
+    closeSubscription(this);
 
     try {
       let m = getMethod(observer, 'complete');
