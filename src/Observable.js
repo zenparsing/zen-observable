@@ -189,6 +189,22 @@ export class Observable {
     }
   }
 
+  // Backward-compatibility shim
+  subscribe(observer) {
+    if (typeof observer !== 'object' || observer === null) {
+      observer = {
+        next: observer,
+        error: arguments[1],
+        complete: arguments[2],
+      };
+    }
+    let sub = {};
+    this.observe(Object.create(observer, {
+      start: { value: cancel => sub.unsubscribe = cancel },
+    }));
+    return sub;
+  }
+
   [getSymbol('observe')](observer) {
     return this.observe(observer);
   }
