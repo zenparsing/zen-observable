@@ -1,6 +1,6 @@
 {
   "name": "zen-observable",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "repository": "zenparsing/zen-observable",
   "description": "An Implementation of ES Observables",
   "homepage": "https://github.com/zenparsing/zen-observable",
@@ -13,9 +13,9 @@
   },
   "dependencies": {},
   "scripts": {
-    "test": "mocha --recursive --require babel-core/register",
+    "test": "mocha --recursive --require ./scripts/mocha-require",
     "lint": "eslint src/*",
-    "build": "git clean -dfX ./lib && babel src --out-dir lib",
+    "build": "git clean -dfX ./lib && node ./scripts/build",
     "prepublishOnly": "eslint src/* && npm test && npm run build"
   }
 }
