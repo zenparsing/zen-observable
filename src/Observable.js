@@ -354,7 +354,7 @@ export class Observable {
         next(value) {
           if (fn) {
             try { value = fn(value) }
-            catch (e) { return observer.error(x) }
+            catch (e) { return observer.error(e) }
           }
 
           let inner = C.from(value).subscribe({
@@ -364,7 +364,7 @@ export class Observable {
               let i = subscriptions.indexOf(inner);
               if (i >= 0) subscriptions.splice(i, 1);
               completeIfDone();
-            }
+            },
           });
 
           subscriptions.push(inner);
