@@ -180,13 +180,7 @@ export class Observable {
   }
 
   observe(observer) {
-    let subscription = new Subscription(observer);
-
-    try {
-      this._executor.call(undefined, subscription);
-    } catch (e) {
-      subscription.error(e);
-    }
+    this[getSymbol('observe')](new Subscription(observer));
   }
 
   // Backward-compatibility shim
@@ -205,8 +199,12 @@ export class Observable {
     return sub;
   }
 
-  [getSymbol('observe')](observer) {
-    return this.observe(observer);
+  [getSymbol('observe')](subscription) {
+    try {
+      this._executor.call(undefined, subscription);
+    } catch (e) {
+      subscription.error(e);
+    }
   }
 
   forEach(fn) {
