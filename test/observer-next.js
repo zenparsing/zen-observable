@@ -77,6 +77,17 @@ describe('observer.next', () => {
     assert.deepEqual(values, [1, 2, 3]);
   });
 
+  it('drops queue if subscription is closed', async () => {
+    let values = [];
+    let subscription = new Observable(x => { x.next(1) }).subscribe({
+      next(val) { values.push(val) },
+    });
+    assert.deepEqual(values, []);
+    subscription.unsubscribe();
+    await null;
+    assert.deepEqual(values, []);
+  });
+
   it('queues if the observer is running', async () => {
     let observer;
     let values = [];
