@@ -1,10 +1,10 @@
 import assert from 'assert';
 
 describe('map', () => {
-  it('maps the results using the supplied callback', () => {
+  it('maps the results using the supplied callback', async () => {
     let list = [];
 
-    Observable.from([1, 2, 3])
+    await Observable.from([1, 2, 3])
       .map(x => x * 2)
       .forEach(x => list.push(x));
 

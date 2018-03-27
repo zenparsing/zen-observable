@@ -21,10 +21,12 @@ describe('of', () => {
     assert.ok(result instanceof Observable);
   });
 
-  it('delivers arguments to next in a job', () => {
+  it('delivers arguments to next', () => {
     let values = [];
     let turns = 0;
-    Observable.of(1, 2, 3, 4).forEach(v => values.push(v));
+    Observable.of(1, 2, 3, 4).observe({
+      next(v) { values.push(v) },
+    });
     assert.deepEqual(values, [1, 2, 3, 4]);
   });
 });

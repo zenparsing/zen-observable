@@ -208,13 +208,11 @@ export class Observable {
   }
 
   forEach(fn) {
-    return new Promise((resolve, reject) => {
-      if (typeof fn !== 'function') {
-        throw new TypeError(fn + ' is not a function');
-      }
-
+    if (typeof fn !== 'function') {
+      return Promise.reject(new TypeError(fn + ' is not a function'));
+    }
+    return Promise.resolve().then(() => new Promise((resolve, reject) => {
       let cancel = null;
-
       this.observe({
         start(c) { cancel = c },
         next(value) {
@@ -228,7 +226,7 @@ export class Observable {
         error: reject,
         complete: resolve,
       });
-    });
+    }));
   }
 
   map(fn) {
