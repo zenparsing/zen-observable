@@ -22,6 +22,12 @@ describe('forEach', () => {
     }
   });
 
+  it('subscribes synchronously', () => {
+    let calls = [];
+    Observable.of(1, 2, 3).forEach(x => calls.push(x));
+    assert.deepEqual(calls, [1, 2, 3]);
+  });
+
   it('does not execute callback after callback throws', async () => {
     let calls = [];
     try {
