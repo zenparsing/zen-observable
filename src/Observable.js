@@ -184,7 +184,12 @@ class Subscription {
 }
 
 class SubscriptionObserver {
-  constructor(subscription) { this._subscription = subscription }
+  constructor(subscription) {
+    this._subscription = subscription;
+    this.next = this.next.bind(this);
+    this.error = this.error.bind(this);
+    this.complete = this.complete.bind(this);
+  }
   get closed() { return this._subscription._state === 'closed' }
   next(value) { onNotify(this._subscription, 'next', value) }
   error(value) { onNotify(this._subscription, 'error', value) }
