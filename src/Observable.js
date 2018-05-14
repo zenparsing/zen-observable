@@ -337,8 +337,8 @@ export class Observable {
 
       return () => {
         if (subscription) {
-          subscription = undefined;
           subscription.unsubscribe();
+          subscription = undefined;
         }
       };
     });
