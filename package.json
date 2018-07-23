@@ -1,6 +1,6 @@
 {
   "name": "zen-observable",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "repository": "zenparsing/zen-observable",
   "description": "An Implementation of ES Observables",
   "homepage": "https://github.com/zenparsing/zen-observable",
