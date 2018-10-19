@@ -11,6 +11,7 @@ if (hasSymbols() && !hasSymbol('observable')) {
 const SymbolIterator = getSymbol('iterator');
 const SymbolObservable = getSymbol('observable');
 const SymbolSpecies = getSymbol('species');
+
 // === Abstract Operations ===
 
 function getMethod(obj, key) {
