@@ -8,6 +8,9 @@ if (hasSymbols() && !hasSymbol('observable')) {
   Symbol.observable = Symbol('observable');
 }
 
+const SymbolIterator = getSymbol('iterator');
+const SymbolObservable = getSymbol('observable');
+const SymbolSpecies = getSymbol('species');
 // === Abstract Operations ===
 
 function getMethod(obj, key) {
@@ -25,7 +28,7 @@ function getMethod(obj, key) {
 function getSpecies(obj) {
   let ctor = obj.constructor;
   if (ctor !== undefined) {
-    ctor = ctor[getSymbol('species')];
+    ctor = ctor[SymbolSpecies];
     if (ctor === null) {
       ctor = undefined;
     }
@@ -388,7 +391,7 @@ export class Observable {
     });
   }
 
-  [getSymbol('observable')]() { return this }
+  [SymbolObservable]() { return this }
 
   static from(x) {
     let C = typeof this === 'function' ? this : Observable;
@@ -396,7 +399,7 @@ export class Observable {
     if (x == null)
       throw new TypeError(x + ' is not an object');
 
-    let method = getMethod(x, getSymbol('observable'));
+    let method = getMethod(x, SymbolObservable);
     if (method) {
       let observable = method.call(x);
 
@@ -410,7 +413,7 @@ export class Observable {
     }
 
     if (hasSymbol('iterator')) {
-      method = getMethod(x, getSymbol('iterator'));
+      method = getMethod(x, SymbolIterator);
       if (method) {
         return new C(observer => {
           enqueue(() => {
@@ -456,14 +459,14 @@ export class Observable {
     });
   }
 
-  static get [getSymbol('species')]() { return this }
+  static get [SymbolSpecies]() { return this }
 
 }
 
 if (hasSymbols()) {
   Object.defineProperty(Observable, Symbol('extensions'), {
     value: {
-      symbol: getSymbol('observable'),
+      symbol: SymbolObservable,
       hostReportError,
     },
     configurabe: true,
