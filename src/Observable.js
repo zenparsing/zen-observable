@@ -321,17 +321,18 @@ export class Observable {
 
     return new C(observer => {
       let subscription;
+      let index = 0;
 
       function startNext(next) {
         subscription = next.subscribe({
           next(v) { observer.next(v) },
           error(e) { observer.error(e) },
           complete() {
-            if (sources.length === 0) {
+            if (index === sources.length) {
               subscription = undefined;
               observer.complete();
             } else {
-              startNext(C.from(sources.shift()));
+              startNext(C.from(sources[index++]));
             }
           },
         });
