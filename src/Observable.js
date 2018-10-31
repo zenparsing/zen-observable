@@ -471,6 +471,6 @@ if (hasSymbols()) {
       symbol: SymbolObservable,
       hostReportError,
     },
-    configurabe: true,
+    configurable: true,
   });
 }
