@@ -32,13 +32,24 @@ export function combineLatest(...sources) {
       return Observable.from([]);
 
     let count = sources.length;
-    let values = new Map();
+    let seen = new Set();
+    let seenAll = false;
+    let values = sources.map(() => undefined);
 
     let subscriptions = sources.map((source, index) => Observable.from(source).subscribe({
       next(v) {
-        values.set(index, v);
-        if (values.size === sources.length)
-          observer.next(Array.from(values.values()));
+        values[index] = v;
+
+        if (!seenAll) {
+          seen.add(index);
+          if (seen.size !== sources.length)
+            return;
+
+          seen = null;
+          seenAll = true;
+        }
+
+        observer.next(Array.from(values));
       },
       error(e) {
         observer.error(e);
