@@ -21,4 +21,23 @@ describe('extras/combineLatest', () => {
       'dD',
     ]);
   });
+
+  it('should emit values in the correct order', async () => {
+    let output = [];
+    await combineLatest(
+      parse('-a-b-c-d'),
+      parse('A-B-C-D')
+    ).forEach(
+      value => output.push(value.join(''))
+    );
+    assert.deepEqual(output, [
+      'aA',
+      'aB',
+      'bB',
+      'bC',
+      'cC',
+      'cD',
+      'dD',
+    ]);
+  });
 });
