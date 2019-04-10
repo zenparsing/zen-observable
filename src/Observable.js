@@ -1,17 +1,3 @@
-// === Symbol Support ===
-
-const hasSymbols = () => typeof Symbol === 'function';
-const hasSymbol = name => hasSymbols() && Boolean(Symbol[name]);
-const getSymbol = name => hasSymbol(name) ? Symbol[name] : '@@' + name;
-
-if (hasSymbols() && !hasSymbol('observable')) {
-  Symbol.observable = Symbol('observable');
-}
-
-const SymbolIterator = getSymbol('iterator');
-const SymbolObservable = getSymbol('observable');
-const SymbolSpecies = getSymbol('species');
-
 // === Abstract Operations ===
 
 function getMethod(obj, key) {
@@ -29,7 +15,7 @@ function getMethod(obj, key) {
 function getSpecies(obj) {
   let ctor = obj.constructor;
   if (ctor !== undefined) {
-    ctor = ctor[SymbolSpecies];
+    ctor = ctor[Symbol.species];
     if (ctor === null) {
       ctor = undefined;
     }
@@ -37,8 +23,18 @@ function getSpecies(obj) {
   return ctor !== undefined ? ctor : Observable;
 }
 
+const $brand = Symbol('observable-brand');
+const $subscriber = Symbol('subscriber');
+
 function isObservable(x) {
-  return x instanceof Observable; // SPEC: Brand check
+  return x[$brand] === x; // SPEC: Brand check
+}
+
+function enqueue(fn) {
+  Promise.resolve().then(() => {
+    try { fn() }
+    catch (e) { hostReportError(e) }
+  });
 }
 
 function hostReportError(e) {
@@ -49,150 +45,105 @@ function hostReportError(e) {
   }
 }
 
-function enqueue(fn) {
-  Promise.resolve().then(() => {
-    try { fn() }
-    catch (e) { hostReportError(e) }
-  });
-}
-
-function cleanupSubscription(subscription) {
-  let cleanup = subscription._cleanup;
-  if (cleanup === undefined)
-    return;
-
-  subscription._cleanup = undefined;
-
-  if (!cleanup) {
-    return;
-  }
-
-  try {
-    if (typeof cleanup === 'function') {
-      cleanup();
-    } else {
-      let unsubscribe = getMethod(cleanup, 'unsubscribe');
-      if (unsubscribe) {
-        unsubscribe.call(cleanup);
-      }
-    }
-  } catch (e) {
-    hostReportError(e);
-  }
-}
-
-function closeSubscription(subscription) {
-  subscription._observer = undefined;
-  subscription._queue = undefined;
-  subscription._state = 'closed';
-}
-
-function flushSubscription(subscription) {
-  let queue = subscription._queue;
-  if (!queue) {
-    return;
-  }
-  subscription._queue = undefined;
-  subscription._state = 'ready';
-  for (let i = 0; i < queue.length; ++i) {
-    notifySubscription(subscription, queue[i].type, queue[i].value);
-    if (subscription._state === 'closed')
-      break;
-  }
-}
-
-function notifySubscription(subscription, type, value) {
-  subscription._state = 'running';
-
-  let observer = subscription._observer;
-
-  try {
-    let m = getMethod(observer, type);
-    switch (type) {
-      case 'next':
-        if (m) m.call(observer, value);
-        break;
-      case 'error':
-        closeSubscription(subscription);
-        if (m) m.call(observer, value);
-        else throw value;
-        break;
-      case 'complete':
-        closeSubscription(subscription);
-        if (m) m.call(observer);
-        break;
-    }
-  } catch (e) {
-    hostReportError(e);
-  }
-
-  if (subscription._state === 'closed')
-    cleanupSubscription(subscription);
-  else if (subscription._state === 'running')
-    subscription._state = 'ready';
-}
-
-function onNotify(subscription, type, value) {
-  if (subscription._state === 'closed')
-    return;
-
-  if (subscription._state === 'buffering') {
-    subscription._queue.push({ type, value });
-    return;
-  }
-
-  if (subscription._state !== 'ready') {
-    subscription._state = 'buffering';
-    subscription._queue = [{ type, value }];
-    enqueue(() => flushSubscription(subscription));
-    return;
-  }
-
-  notifySubscription(subscription, type, value);
-}
-
-
 class Subscription {
 
-  constructor(observer, subscriber) {
-    // ASSERT: observer is an object
-    // ASSERT: subscriber is callable
+  constructor(onNext, onError, onComplete) {
+    this.onNext = onNext;
+    this.onError = onError,
+    this.onComplete = onComplete;
+    this.cleanup = undefined;
+    this.queue = undefined;
+    this.state = 'initializing';
+  }
 
-    this._cleanup = undefined;
-    this._observer = observer;
-    this._queue = undefined;
-    this._state = 'initializing';
+  send(type, value) {
+    if (this.state === 'closed')
+      return;
 
-    let subscriptionObserver = new SubscriptionObserver(this);
+    if (this.state === 'buffering') {
+      this.queue.push({ type, value });
+      return;
+    }
+
+    if (this.state !== 'ready') {
+      this.state = 'buffering';
+      this.queue = [{ type, value }];
+      enqueue(() => this.flush());
+      return;
+    }
+
+    this.triggerCallback(type, value);
+  }
+
+  cancel() {
+    if (this.state !== 'closed') {
+      this.close();
+      this.finalize();
+    }
+  }
+
+  flush() {
+    let queue = this.queue;
+    if (!queue) return;
+
+    this.queue = undefined;
+    this.state = 'ready';
+    for (let i = 0; i < queue.length; ++i) {
+      this.triggerCallback(queue[i].type, queue[i].value);
+      if (this.state === 'closed')
+        break;
+    }
+  }
+
+  triggerCallback(type, value) {
+    this.state = 'running';
+
+    // TODO: What is the error handling model?
+    // TODO: Should we allow returned values and exceptions? Why not?
 
     try {
-      this._cleanup = subscriber.call(undefined, subscriptionObserver);
+      switch (type) {
+        case 'next':
+          if (this.onNext) this.onNext(value);
+          break;
+        case 'error':
+          this.close();
+          if (this.onError) this.onError(value);
+          else throw value;
+          break;
+        case 'complete':
+          this.close();
+          if (this.onComplete) this.onComplete(value);
+          break;
+      }
     } catch (e) {
-      subscriptionObserver.error(e);
+      hostReportError(e);
     }
 
-    if (this._state === 'initializing')
-      this._state = 'ready';
+    if (this.state === 'closed')
+      this.finalize();
+    else if (this.state === 'running')
+      this.state = 'ready';
   }
 
-  get closed() {
-    return this._state === 'closed';
+  close() {
+    this.observer = undefined;
+    this.queue = undefined;
+    this.state = 'closed';
   }
 
-  unsubscribe() {
-    if (this._state !== 'closed') {
-      closeSubscription(this);
-      cleanupSubscription(this);
+  finalize() {
+    let cleanup = this.cleanup;
+    this.cleanup = undefined;
+    if (!cleanup)
+      return;
+
+    try {
+      cleanup();
+    } catch (e) {
+      hostReportError(e);
     }
   }
-}
-
-class SubscriptionObserver {
-  constructor(subscription) { this._subscription = subscription }
-  get closed() { return this._subscription._state === 'closed' }
-  next(value) { onNotify(this._subscription, 'next', value) }
-  error(value) { onNotify(this._subscription, 'error', value) }
-  complete() { onNotify(this._subscription, 'complete') }
 }
 
 export class Observable {
@@ -204,18 +155,27 @@ export class Observable {
     if (typeof subscriber !== 'function')
       throw new TypeError('Observable initializer must be a function');
 
-    this._subscriber = subscriber;
+    this[$subscriber] = subscriber;
+    this[$brand] = this;
   }
 
-  subscribe(observer) {
-    if (typeof observer !== 'object' || observer === null) {
-      observer = {
-        next: observer,
-        error: arguments[1],
-        complete: arguments[2],
-      };
+  observe(onNext, onError, onComplete) {
+    let subscription = new Subscription(onNext, onError, onComplete);
+
+    try {
+      subscription.cleanup = this[$subscriber].call(undefined,
+        x => subscription.send('next', x),
+        x => subscription.send('error', x),
+        x => subscription.send('complete', x)
+      );
+    } catch (e) {
+      subscription.send('complete', e);
     }
-    return new Subscription(observer, this._subscriber);
+
+    if (subscription.state === 'initializing')
+      subscription.state = 'ready';
+
+    return () => subscription.cancel();
   }
 
   forEach(fn) {
@@ -225,23 +185,14 @@ export class Observable {
         return;
       }
 
-      function done() {
-        subscription.unsubscribe();
-        resolve();
-      }
-
-      let subscription = this.subscribe({
-        next(value) {
-          try {
-            fn(value, done);
-          } catch (e) {
-            reject(e);
-            subscription.unsubscribe();
-          }
-        },
-        error: reject,
-        complete: resolve,
-      });
+      let unobserve = this.observe(value => {
+        try {
+          fn(value);
+        } catch (e) {
+          reject(e);
+          unobserve();
+        }
+      }, reject, resolve);
     });
   }
 
@@ -251,15 +202,11 @@ export class Observable {
 
     let C = getSpecies(this);
 
-    return new C(observer => this.subscribe({
-      next(value) {
-        try { value = fn(value) }
-        catch (e) { return observer.error(e) }
-        observer.next(value);
-      },
-      error(e) { observer.error(e) },
-      complete() { observer.complete() },
-    }));
+    return new C((next, error, complete) => this.observe(value => {
+      try { value = fn(value) }
+      catch (e) { return error(e) }
+      next(value);
+    }, error, complete));
   }
 
   filter(fn) {
@@ -268,15 +215,11 @@ export class Observable {
 
     let C = getSpecies(this);
 
-    return new C(observer => this.subscribe({
-      next(value) {
-        try { if (!fn(value)) return; }
-        catch (e) { return observer.error(e) }
-        observer.next(value);
-      },
-      error(e) { observer.error(e) },
-      complete() { observer.complete() },
-    }));
+    return new C((next, error, complete) => this.observe(value => {
+      try { if (!fn(value)) return; }
+      catch (e) { return error(e) }
+      next(value);
+    }, error, complete));
   }
 
   reduce(fn) {
@@ -289,61 +232,53 @@ export class Observable {
     let seed = arguments[1];
     let acc = seed;
 
-    return new C(observer => this.subscribe({
-
-      next(value) {
+    return new C((next, error, complete) => this.observe(
+      value => {
         let first = !hasValue;
         hasValue = true;
 
         if (!first || hasSeed) {
           try { acc = fn(acc, value) }
-          catch (e) { return observer.error(e) }
+          catch (e) { return error(e) }
         } else {
           acc = value;
         }
       },
-
-      error(e) { observer.error(e) },
-
-      complete() {
+      error,
+      () => {
         if (!hasValue && !hasSeed)
-          return observer.error(new TypeError('Cannot reduce an empty sequence'));
+          return error(new TypeError('Cannot reduce an empty sequence'));
 
-        observer.next(acc);
-        observer.complete();
-      },
-
-    }));
+        next(acc);
+        complete();
+      }
+    ));
   }
 
   concat(...sources) {
     let C = getSpecies(this);
 
-    return new C(observer => {
-      let subscription;
+    return new C((next, error, complete) => {
+      let unobserve;
       let index = 0;
 
-      function startNext(next) {
-        subscription = next.subscribe({
-          next(v) { observer.next(v) },
-          error(e) { observer.error(e) },
-          complete() {
-            if (index === sources.length) {
-              subscription = undefined;
-              observer.complete();
-            } else {
-              startNext(C.from(sources[index++]));
-            }
-          },
+      function startSource(source) {
+        unobserve = source.observe(next, error, () => {
+          if (index === sources.length) {
+            unobserve = undefined;
+            complete();
+          } else {
+            startSource(C.from(sources[index++]));
+          }
         });
       }
 
-      startNext(this);
+      startSource(this);
 
       return () => {
-        if (subscription) {
-          subscription.unsubscribe();
-          subscription = undefined;
+        if (unobserve) {
+          unobserve();
+          unobserve = undefined;
         }
       };
     });
@@ -355,45 +290,47 @@ export class Observable {
 
     let C = getSpecies(this);
 
-    return new C(observer => {
-      let subscriptions = [];
+    return new C((next, error, complete) => {
+      let list = [];
+      let outerComplete = false;
 
-      let outer = this.subscribe({
-        next(value) {
+      let unobserve = this.observe(
+        value => {
           if (fn) {
             try { value = fn(value) }
-            catch (e) { return observer.error(e) }
+            catch (e) { return error(e) }
           }
 
-          let inner = C.from(value).subscribe({
-            next(value) { observer.next(value) },
-            error(e) { observer.error(e) },
-            complete() {
-              let i = subscriptions.indexOf(inner);
-              if (i >= 0) subscriptions.splice(i, 1);
+          let inner = C.from(value).observe(
+            next,
+            error,
+            () => {
+              let i = list.indexOf(inner);
+              if (i >= 0) list.splice(i, 1);
               completeIfDone();
-            },
-          });
+            }
+          );
 
-          subscriptions.push(inner);
+          list.push(inner);
         },
-        error(e) { observer.error(e) },
-        complete() { completeIfDone() },
-      });
+        error,
+        () => {
+          outerComplete = true;
+          completeIfDone();
+        }
+      );
 
       function completeIfDone() {
-        if (outer.closed && subscriptions.length === 0)
-          observer.complete();
+        if (outerComplete && list.length === 0)
+          complete();
       }
 
       return () => {
-        subscriptions.forEach(s => s.unsubscribe());
-        outer.unsubscribe();
+        list.forEach(cancel => cancel());
+        unobserve();
       };
     });
   }
-
-  [SymbolObservable]() { return this }
 
   static from(x) {
     let C = typeof this === 'function' ? this : Observable;
@@ -401,45 +338,30 @@ export class Observable {
     if (x == null)
       throw new TypeError(x + ' is not an object');
 
-    let method = getMethod(x, SymbolObservable);
+    if (isObservable(x) && x.constructor === C)
+      return x;
+
+    let method;
+
+    method = getMethod(x, 'observe');
+    if (method)
+      return new C((next, error, complete) => method.call(x, next, error, complete));
+
+    method = getMethod(x, Symbol.iterator);
     if (method) {
-      let observable = method.call(x);
+      return new C((next, error, complete) => {
+        let closed = false;
 
-      if (Object(observable) !== observable)
-        throw new TypeError(observable + ' is not an object');
-
-      if (isObservable(observable) && observable.constructor === C)
-        return observable;
-
-      return new C(observer => observable.subscribe(observer));
-    }
-
-    if (hasSymbol('iterator')) {
-      method = getMethod(x, SymbolIterator);
-      if (method) {
-        return new C(observer => {
-          enqueue(() => {
-            if (observer.closed) return;
-            for (let item of method.call(x)) {
-              observer.next(item);
-              if (observer.closed) return;
-            }
-            observer.complete();
-          });
-        });
-      }
-    }
-
-    if (Array.isArray(x)) {
-      return new C(observer => {
         enqueue(() => {
-          if (observer.closed) return;
-          for (let i = 0; i < x.length; ++i) {
-            observer.next(x[i]);
-            if (observer.closed) return;
+          if (closed) return;
+          for (let item of method.call(x)) {
+            next(item);
+            if (closed) return;
           }
-          observer.complete();
+          complete();
         });
+
+        return () => { closed = true };
       });
     }
 
@@ -449,28 +371,29 @@ export class Observable {
   static of(...items) {
     let C = typeof this === 'function' ? this : Observable;
 
-    return new C(observer => {
+    return new C((next, error, complete) => {
+      let closed = false;
+
       enqueue(() => {
-        if (observer.closed) return;
-        for (let i = 0; i < items.length; ++i) {
-          observer.next(items[i]);
-          if (observer.closed) return;
+        if (closed) return;
+        for (let item of items) {
+          next(item);
+          if (closed) return;
         }
-        observer.complete();
+        complete();
       });
+
+      return () => { closed = true };
     });
   }
 
-  static get [SymbolSpecies]() { return this }
+  static get [Symbol.species]() { return this }
 
 }
 
-if (hasSymbols()) {
-  Object.defineProperty(Observable, Symbol('extensions'), {
-    value: {
-      symbol: SymbolObservable,
-      hostReportError,
-    },
-    configurable: true,
-  });
-}
+Object.defineProperty(Observable, Symbol('extensions'), {
+  value: {
+    hostReportError,
+  },
+  configurable: true,
+});

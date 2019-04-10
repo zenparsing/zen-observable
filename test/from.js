@@ -40,31 +40,23 @@ describe('from', () => {
 
     it('wraps the input if it is not an instance of Observable', () => {
       let obj = {
-        'constructor': Observable,
-        [Symbol.observable]() { return this },
+        constructor: Observable,
+        observe() {}
       };
       assert.ok(Observable.from(obj) !== obj);
     });
 
-    it('throws if @@observable property is not a method', () => {
-      assert.throws(() => Observable.from({
-        [Symbol.observable]: 1
-      }));
-    });
-
     it('returns an observable wrapping @@observable result', () => {
       let inner = {
-        subscribe(x) {
-          observer = x;
+        observe(next, error, complete) {
+          observer = { next, error, complete };
           return () => { cleanupCalled = true };
         },
       };
       let observer;
       let cleanupCalled = true;
-      let observable = Observable.from({
-        [Symbol.observable]() { return inner },
-      });
-      observable.subscribe();
+      let observable = Observable.from(inner);
+      observable.observe();
       assert.equal(typeof observer.next, 'function');
       observer.complete();
       assert.equal(cleanupCalled, true);
@@ -78,10 +70,11 @@ describe('from', () => {
 
     it('returns an observable wrapping iterables', async () => {
       let calls = [];
-      let subscription = Observable.from(iterable).subscribe({
-        next(v) { calls.push(['next', v]) },
-        complete() { calls.push(['complete']) },
-      });
+      let subscription = Observable.from(iterable).observe(
+        v => calls.push(['next', v]),
+        () => {},
+        () => calls.push(['complete'])
+      );
       assert.deepEqual(calls, []);
       await null;
       assert.deepEqual(calls, [

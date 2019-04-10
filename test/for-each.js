@@ -1,5 +1,9 @@
 import assert from 'assert';
 
+function captureObserver(fn) {
+  return (next, error, complete) => { fn({ next, error, complete }) };
+}
+
 describe('forEach', () => {
 
   it('rejects if the argument is not a function', async () => {
@@ -39,7 +43,7 @@ describe('forEach', () => {
     let error = {};
     try {
       let observer;
-      let promise = new Observable(x => { observer = x }).forEach(() => {});
+      let promise = new Observable(captureObserver(x => observer = x)).forEach(() => {});
       observer.error(error);
       await promise;
       assert.ok(false);
@@ -50,21 +54,9 @@ describe('forEach', () => {
 
   it('resolves with undefined if the producer calls complete', async () => {
     let observer;
-    let promise = new Observable(x => { observer = x }).forEach(() => {});
+    let promise = new Observable(captureObserver(x => observer = x)).forEach(() => {});
     observer.complete();
     assert.equal(await promise, undefined);
-  });
-
-  it('provides a cancellation function as the second argument', async () => {
-    let observer;
-    let results = [];
-    await Observable.of(1, 2, 3).forEach((value, cancel) => {
-      results.push(value);
-      if (value > 1) {
-        return cancel();
-      }
-    });
-    assert.deepEqual(results, [1, 2]);
   });
 
 });

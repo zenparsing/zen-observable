@@ -3,29 +3,24 @@ import { testMethodProperty } from './properties.js';
 
 describe('observer.complete', () => {
 
-  function getObserver(inner) {
+  function getObserver(...args) {
     let observer;
-    new Observable(x => { observer = x }).subscribe(inner);
+
+    new Observable((next, error, complete) => {
+      observer = { next, error, complete };
+    }).observe(...args);
+
     return observer;
   }
 
-  it('is a method of SubscriptionObserver', () => {
-    let observer = getObserver();
-    testMethodProperty(Object.getPrototypeOf(observer), 'complete', {
-      configurable: true,
-      writable: true,
-      length: 0,
-    });
-  });
-
-  it('does not forward arguments', () => {
+  it('forwards arguments', () => {
     let args;
-    let observer = getObserver({ complete(...a) { args = a } });
+    let observer = getObserver(null, null, (...a) => { args = a });
     observer.complete(1);
-    assert.deepEqual(args, []);
+    assert.deepEqual(args, [1]);
   });
 
-  it('does not return a value', () => {
+  it('allows return values', () => {
     let observer = getObserver({ complete() { return 1 } });
     assert.equal(observer.complete(), undefined);
   });
