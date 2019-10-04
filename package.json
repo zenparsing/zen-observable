@@ -18,6 +18,6 @@
     "test": "mocha --recursive --require ./scripts/mocha-require",
     "lint": "eslint src/*",
     "build": "git clean -dfX ./lib && node ./scripts/build",
-    "prepublishOnly": "eslint src/* && npm test && npm run build"
+    "prepublishOnly": "npm run lint && npm test && npm run build"
   }
 }
