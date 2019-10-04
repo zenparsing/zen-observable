@@ -6,10 +6,12 @@
   "homepage": "https://github.com/zenparsing/zen-observable",
   "license": "MIT",
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-es2015": "^6.24.1",
-    "eslint": "^5.16.0",
-    "mocha": "^6.1.2"
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
+    "@babel/register": "^7.6.0",
+    "eslint": "^6.5.0",
+    "mocha": "^6.2.0"
   },
   "dependencies": {},
   "scripts": {
