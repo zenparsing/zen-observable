@@ -1,1 +1,1 @@
-module.exports = require('./lib/extras.js');
+export * from './src/extras.js';

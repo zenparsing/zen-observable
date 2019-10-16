@@ -1,1 +1,1 @@
-module.exports = require('./lib/Observable.js').Observable;
+export { Observable as default } from './src/Observable.js';
