@@ -1,3 +1,5 @@
+import babel from 'rollup-plugin-babel';
+
 export default {
   input: [
     'index.js',
@@ -12,5 +14,10 @@ export default {
       dir: 'lib/cjs',
       format: 'cjs',
     },
+  ],
+  plugins: [
+    babel({
+      plugins: require('./scripts/babel-plugins'),
+    }),
   ],
 };
