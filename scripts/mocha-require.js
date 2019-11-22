@@ -1,3 +1,1 @@
-require('@babel/register')({
-  plugins: require('./babel-plugins'),
-});
+require('@babel/register')(require('./babel-plugins'));
