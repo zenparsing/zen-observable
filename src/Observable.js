@@ -4,8 +4,14 @@ const hasSymbols = () => typeof Symbol === 'function';
 const hasSymbol = name => hasSymbols() && Boolean(Symbol[name]);
 const getSymbol = name => hasSymbol(name) ? Symbol[name] : '@@' + name;
 
-if (hasSymbols() && !hasSymbol('observable') && Object.isExtensible(Symbol)) {
-  Symbol.observable = Symbol('observable');
+export const polyfillSymbol = (symbolConstructor) => {
+  if (Object.isExtensible(symbolConstructor)) {
+    symbolConstructor.observable = symbolConstructor('observable');
+  }
+};
+
+if (hasSymbols() && !hasSymbol('observable')) {
+  polyfillSymbol(Symbol);
 }
 
 const SymbolIterator = getSymbol('iterator');
