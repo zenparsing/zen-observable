@@ -13,6 +13,12 @@
     "eslint": "^6.5.0",
     "mocha": "^6.2.0"
   },
+  "files": [
+    "index.js",
+    "esm.js",
+    "extras.js",
+    "lib"
+  ],
   "dependencies": {},
   "scripts": {
     "test": "mocha --recursive --require ./scripts/mocha-require",
