@@ -5,6 +5,11 @@
   "description": "An Implementation of ES Observables",
   "homepage": "https://github.com/zenparsing/zen-observable",
   "license": "MIT",
+  "type": "module",
+  "exports": {
+    "import": "./esm.js",
+    "require": "./index.js"
+  },
   "devDependencies": {
     "@babel/cli": "^7.6.0",
     "@babel/core": "^7.6.0",
