@@ -8,7 +8,6 @@ module.exports = [
   '@babel/plugin-transform-duplicate-keys',
   '@babel/plugin-transform-for-of',
   '@babel/plugin-transform-literals',
-  '@babel/plugin-transform-modules-commonjs',
   '@babel/plugin-transform-parameters',
   '@babel/plugin-transform-shorthand-properties',
   '@babel/plugin-transform-spread',

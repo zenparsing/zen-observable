@@ -1,4 +1,4 @@
-import { Observable } from '../src/Observable.js';
+import { Observable } from '../src/index.js';
 
 beforeEach(() => {
   global.Observable = Observable;

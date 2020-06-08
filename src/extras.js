@@ -1,4 +1,4 @@
-import { Observable } from './Observable.js';
+import { Observable } from './index.js';
 
 // Emits all values from all inputs in parallel
 export function merge(...sources) {

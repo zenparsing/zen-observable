@@ -5,19 +5,32 @@
   "description": "An Implementation of ES Observables",
   "homepage": "https://github.com/zenparsing/zen-observable",
   "license": "MIT",
+  "main": "./dist/cjs/index.js",
+  "exports": {
+    "require": "./dist/cjs/index.js",
+    "import": "./dist/es/index.js"
+  },
+  "module": "./dist/es/index.js",
+  "type": "commonjs",
   "devDependencies": {
     "@babel/cli": "^7.6.0",
     "@babel/core": "^7.6.0",
     "@babel/preset-env": "^7.6.0",
     "@babel/register": "^7.6.0",
+    "@rollup/plugin-babel": "^5.0.0",
     "eslint": "^6.5.0",
-    "mocha": "^6.2.0"
+    "mocha": "^6.2.0",
+    "rollup": "^2.14.0"
   },
   "dependencies": {},
   "scripts": {
-    "test": "mocha --recursive --require ./scripts/mocha-require",
+    "build": "rollup --config",
     "lint": "eslint src/*",
-    "build": "git clean -dfX ./lib && node ./scripts/build",
-    "prepublishOnly": "npm run lint && npm test && npm run build"
-  }
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run lint && npm test",
+    "test": "mocha --recursive --require ./scripts/mocha-require"
+  },
+  "files": [
+    "dist/"
+  ]
 }

@@ -474,3 +474,5 @@ if (hasSymbols()) {
     configurable: true,
   });
 }
+
+export default Observable;
