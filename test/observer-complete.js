@@ -9,13 +9,22 @@ describe('observer.complete', () => {
     return observer;
   }
 
-  it('is a method of SubscriptionObserver', () => {
+  it('is a method', () => {
     let observer = getObserver();
-    testMethodProperty(Object.getPrototypeOf(observer), 'complete', {
+    testMethodProperty(observer, 'complete', {
       configurable: true,
       writable: true,
+      enumerable: true,
       length: 0,
     });
+  });
+
+  it('is bound', () => {
+    let done = false;
+    let observer = getObserver({ complete() { done = true } });
+    let { complete } = observer;
+    complete();
+    assert.ok(done);
   });
 
   it('does not forward arguments', () => {
