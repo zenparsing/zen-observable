@@ -1,4 +1,4 @@
-module.exports = {
+{
   "extends": ["eslint:recommended"],
 
   "env": {
@@ -44,4 +44,4 @@ module.exports = {
     "array-bracket-spacing": ["error"],
     "max-len": ["error", 100]
   }
-};
+}
