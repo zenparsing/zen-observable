@@ -314,6 +314,12 @@ export class Observable {
     }));
   }
 
+  async all() {
+    let values = [];
+    await this.forEach(value => values.push(value));
+    return values;
+  }
+
   concat(...sources) {
     let C = getSpecies(this);
 
