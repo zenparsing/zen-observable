@@ -174,3 +174,15 @@ Observable.of(1, 2, 3).concat(
 ```
 
 Merges the current observable with additional observables.
+
+### observable.all()
+
+```js
+let observable = Observable.of(1, 2, 3);
+for (let value of await observable.all()) {
+  console.log(value);
+}
+// 1, 2, 3
+```
+
+Returns a `Promise` for an array containing all of the values produced by the observable.
