@@ -174,3 +174,18 @@ Observable.of(1, 2, 3).concat(
 ```
 
 Merges the current observable with additional observables.
+
+### observable[Symbol.asyncIterator]()
+
+```js
+async function fn() {
+  let observable = Observable.of(1, 2, 3);
+  for await (const value of observable) {
+    console.log(value);
+  }
+}
+fn();
+// 1, 2, 3
+```
+
+Returns a async iterator that can be used with `for await...of` syntax. Each value from the observable will be iterated over. If the observable produces values faster than the iterator is drained, then a buffer is used to collect values for later iteration. **Note that this can result in unbounded memory consumption.**

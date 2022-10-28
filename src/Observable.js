@@ -11,6 +11,7 @@ if (hasSymbols() && !hasSymbol('observable')) {
 const SymbolIterator = getSymbol('iterator');
 const SymbolObservable = getSymbol('observable');
 const SymbolSpecies = getSymbol('species');
+const SymbolAsyncIterator = getSymbol('asyncIterator');
 
 // === Abstract Operations ===
 
@@ -394,6 +395,47 @@ export class Observable {
   }
 
   [SymbolObservable]() { return this }
+
+  async *[SymbolAsyncIterator]() {
+    let pending = null;
+    let buffer = [];
+    let noError = {};
+    let error = noError;
+    let done = false;
+
+    let subscription = this.subscribe({
+      next(value) {
+        if (pending) pending.resolve({ value, done });
+        else buffer.push(value);
+        pending = null;
+      },
+      error(err) {
+        error = err;
+        if (pending) pending.reject(error);
+        pending = null;
+      },
+      complete() {
+        done = true;
+        if (pending) pending.resolve({ value: undefined, done });
+        pending = null;
+      },
+    });
+
+    try {
+      while (true) {
+        while (buffer.length > 0) yield buffer.shift();
+        if (done) return;
+        if (error !== noError) throw error;
+        let result = await new Promise((resolve, reject) => {
+          pending = { resolve, reject };
+        });
+        if (result.done) return;
+        yield result.value;
+      }
+    } finally {
+      subscription.unsubscribe();
+    }
+  }
 
   static from(x) {
     let C = typeof this === 'function' ? this : Observable;
