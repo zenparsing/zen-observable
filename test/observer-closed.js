@@ -5,10 +5,11 @@ describe('observer.closed', () => {
   it('is a getter on SubscriptionObserver.prototype', () => {
     let observer;
     new Observable(x => { observer = x }).subscribe();
-    testMethodProperty(Object.getPrototypeOf(observer), 'closed', {
+    testMethodProperty(observer, 'closed', {
       get: true,
       configurable: true,
       writable: true,
+      enumerable: true,
       length: 1
     });
   });

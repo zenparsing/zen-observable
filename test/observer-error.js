@@ -9,13 +9,22 @@ describe('observer.error', () => {
     return observer;
   }
 
-  it('is a method of SubscriptionObserver', () => {
+  it('is a method', () => {
     let observer = getObserver();
-    testMethodProperty(Object.getPrototypeOf(observer), 'error', {
+    testMethodProperty(observer, 'error', {
       configurable: true,
       writable: true,
+      enumerable: true,
       length: 1,
     });
+  });
+
+  it('is bound', () => {
+    let err;
+    let observer = getObserver({ error(e) { err = e } });
+    let { error } = observer;
+    error('err');
+    assert.equal(err, 'err');
   });
 
   it('forwards the argument', () => {

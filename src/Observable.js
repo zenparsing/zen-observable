@@ -163,7 +163,14 @@ class Subscription {
     this._queue = undefined;
     this._state = 'initializing';
 
-    let subscriptionObserver = new SubscriptionObserver(this);
+    let self = this;
+
+    let subscriptionObserver = {
+      get closed() { return self._state === 'closed' },
+      next(value) { onNotify(self, 'next', value) },
+      error(value) { onNotify(self, 'error', value) },
+      complete() { onNotify(self, 'complete') },
+    };
 
     try {
       this._cleanup = subscriber.call(undefined, subscriptionObserver);
@@ -185,14 +192,6 @@ class Subscription {
       cleanupSubscription(this);
     }
   }
-}
-
-class SubscriptionObserver {
-  constructor(subscription) { this._subscription = subscription }
-  get closed() { return this._subscription._state === 'closed' }
-  next(value) { onNotify(this._subscription, 'next', value) }
-  error(value) { onNotify(this._subscription, 'error', value) }
-  complete() { onNotify(this._subscription, 'complete') }
 }
 
 export class Observable {
