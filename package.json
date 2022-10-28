@@ -10,7 +10,7 @@
     "@babel/core": "^7.6.0",
     "@babel/preset-env": "^7.6.0",
     "@babel/register": "^7.6.0",
-    "eslint": "^6.5.0",
+    "eslint": "^8.26.0",
     "mocha": "^10.1.0"
   },
   "scripts": {
