@@ -1,10 +1,9 @@
 // === Symbol Support ===
 
-const hasSymbols = () => typeof Symbol === 'function';
-const hasSymbol = name => hasSymbols() && Boolean(Symbol[name]);
+const hasSymbol = name => Boolean(Symbol[name]);
 const getSymbol = name => hasSymbol(name) ? Symbol[name] : '@@' + name;
 
-if (hasSymbols() && !hasSymbol('observable') && Object.isExtensible(Symbol)) {
+if (!hasSymbol('observable') && Object.isExtensible(Symbol)) {
   Symbol.observable = Symbol('observable');
 }
 
@@ -464,12 +463,10 @@ export class Observable {
 
 }
 
-if (hasSymbols()) {
-  Object.defineProperty(Observable, Symbol('extensions'), {
-    value: {
-      symbol: SymbolObservable,
-      hostReportError,
-    },
-    configurable: true,
-  });
-}
+Object.defineProperty(Observable, Symbol('extensions'), {
+  value: {
+    symbol: SymbolObservable,
+    hostReportError,
+  },
+  configurable: true,
+});

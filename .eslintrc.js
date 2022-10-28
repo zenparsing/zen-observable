@@ -2,7 +2,7 @@ module.exports = {
   "extends": ["eslint:recommended"],
 
   "env": {
-    "es6": true,
+    "es2018": true,
     "node": true
   },
 
