@@ -4,7 +4,7 @@ const hasSymbols = () => typeof Symbol === 'function';
 const hasSymbol = name => hasSymbols() && Boolean(Symbol[name]);
 const getSymbol = name => hasSymbol(name) ? Symbol[name] : '@@' + name;
 
-if (hasSymbols() && !hasSymbol('observable')) {
+if (hasSymbols() && !hasSymbol('observable') && Object.isExtensible(Symbol)) {
   Symbol.observable = Symbol('observable');
 }
 
