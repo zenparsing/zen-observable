@@ -41,14 +41,22 @@ describe('from', () => {
     it('wraps the input if it is not an instance of Observable', () => {
       let obj = {
         'constructor': Observable,
-        [Symbol.observable]() { return this },
+        [observableSymbol]() { return this },
+      };
+      assert.ok(Observable.from(obj) !== obj);
+    });
+
+    it('uses @@observable as the property name unless polyfilled', () => {
+      let obj = {
+        'constructor': Observable,
+        '@@observable'() { return this },
       };
       assert.ok(Observable.from(obj) !== obj);
     });
 
     it('throws if @@observable property is not a method', () => {
       assert.throws(() => Observable.from({
-        [Symbol.observable]: 1
+        [observableSymbol]: 1
       }));
     });
 
@@ -62,7 +70,7 @@ describe('from', () => {
       let observer;
       let cleanupCalled = true;
       let observable = Observable.from({
-        [Symbol.observable]() { return inner },
+        [observableSymbol]() { return inner },
       });
       observable.subscribe();
       assert.equal(typeof observer.next, 'function');

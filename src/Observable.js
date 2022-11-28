@@ -3,10 +3,6 @@
 const hasSymbol = name => Boolean(Symbol[name]);
 const getSymbol = name => hasSymbol(name) ? Symbol[name] : '@@' + name;
 
-if (!hasSymbol('observable') && Object.isExtensible(Symbol)) {
-  Symbol.observable = Symbol('observable');
-}
-
 const SymbolIterator = getSymbol('iterator');
 const SymbolObservable = getSymbol('observable');
 const SymbolSpecies = getSymbol('species');
