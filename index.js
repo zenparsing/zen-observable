@@ -1,1 +1,5 @@
-module.exports = require('./lib/Observable.js').Observable;
+import { Observable } from './src/Observable.js';
+
+export default Observable;
+export { Observable };
+export * from './src/extras.js';

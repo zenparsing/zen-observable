@@ -1,6 +1,6 @@
 # zen-observable
 
-An implementation of Observables for JavaScript. Requires Promises or a Promise polyfill.
+An implementation of Observables for JavaScript.
 
 ## Install
 
